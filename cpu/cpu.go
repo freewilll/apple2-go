@@ -6,35 +6,47 @@ import (
 )
 
 const (
-	CpuFlagC byte = 1 << iota
-	CpuFlagZ
-	CpuFlagI
-	CpuFlagD
-	CpuFlagB
-	CpuFlagR
-	CpuFlagV
-	CpuFlagN
+	CpuFlagC byte = 1 << iota // 0x01
+	CpuFlagZ                  // 0x02
+	CpuFlagI                  // 0x04
+	CpuFlagD                  // 0x08
+	CpuFlagB                  // 0x10
+	CpuFlagR                  // 0x20
+	CpuFlagV                  // 0x40
+	CpuFlagN                  // 0x80
 )
 
-const runningTests = true
+var (
+	RunningTests           bool
+	RunningFunctionalTests bool
+	RunningInterruptTests  bool
+)
 
 type State struct {
-	Memory [0x10000]uint8
-	A      uint8
-	X      uint8
-	Y      uint8
-	PC     uint16
-	SP     uint8
-	P      uint8
+	Memory           [0x10000]uint8
+	pendingInterrupt bool
+	pendingNMI       bool
+	A                uint8
+	X                uint8
+	Y                uint8
+	PC               uint16
+	SP               uint8
+	P                uint8
 }
 
 func (s *State) Init() {
+	RunningTests = false
+	RunningFunctionalTests = false
+	RunningInterruptTests = false
+
 	s.A = 0
 	s.X = 0
 	s.Y = 0
 	s.P = CpuFlagR | CpuFlagB | CpuFlagZ
 	s.PC = 0x800
 	s.SP = 0xff
+	s.pendingInterrupt = false
+	s.pendingNMI = false
 }
 
 func (s *State) setC(value bool) {
@@ -120,10 +132,36 @@ func readMemory(s *State, address uint16) uint8 {
 	return s.Memory[address]
 }
 
+// Handle a write to a magic test address that triggers an interrupt and/or an NMI
+func writeInterruptTestOpenCollector(s *State, address uint16, value uint8) {
+	oldValue := s.Memory[address]
+
+	oldInterrupt := (oldValue & 0x1) == 0x1
+	oldNMI := (oldValue & 0x2) == 0x2
+
+	interrupt := (value & 0x1) == 0x1
+	NMI := (value & 0x2) == 0x2
+
+	if oldInterrupt != interrupt {
+		s.pendingInterrupt = interrupt
+	}
+
+	if oldNMI != NMI {
+		s.pendingNMI = NMI
+	}
+
+	s.Memory[address] = value
+}
+
 func writeMemory(s *State, address uint16, value uint8) {
+	if RunningInterruptTests && address == 0xbffc {
+		writeInterruptTestOpenCollector(s, address, value)
+		return
+	}
+
 	s.Memory[address] = value
 
-	if runningTests && address == 0x200 {
+	if RunningFunctionalTests && address == 0x200 {
 		testNumber := s.Memory[0x200]
 		if testNumber == 0xf0 {
 			fmt.Println("Opcode testing completed")
@@ -145,7 +183,7 @@ func branch(s *State, cycles *int, instructionName string, doBranch bool) {
 
 	*cycles += 2
 	if doBranch {
-		if runningTests && s.PC == relativeAddress {
+		if RunningTests && s.PC == relativeAddress {
 			fmt.Printf("Trap at $%04x\n", relativeAddress)
 			os.Exit(0)
 		}
@@ -516,13 +554,57 @@ func postProcessIncDec(s *State, cycles *int, addressMode byte) {
 	}
 }
 
+func brk(s *State, cycles *int) {
+	push16(s, s.PC+2)
+	s.P |= CpuFlagB
+	push8(s, s.P)
+	s.P |= CpuFlagI
+	s.PC = uint16(s.Memory[0xffff])<<8 + uint16(s.Memory[0xfffe])
+	*cycles += 7
+}
+
+func irq(s *State, cycles *int) {
+	push16(s, s.PC)
+	s.P &= ^CpuFlagB
+	push8(s, s.P)
+	s.P |= CpuFlagI
+	s.PC = uint16(s.Memory[0xffff])<<8 + uint16(s.Memory[0xfffe])
+	*cycles += 7
+}
+
+func nmi(s *State, cycles *int) {
+	push16(s, s.PC)
+	s.P &= ^CpuFlagB
+	push8(s, s.P)
+	s.P |= CpuFlagI
+	s.PC = uint16(s.Memory[0xfffb])<<8 + uint16(s.Memory[0xfffa])
+	*cycles += 7
+}
+
 func Run(s *State, showInstructions bool, breakAddress *uint16) {
 	cycles := 0
 
 	for {
-		if runningTests && (s.PC == 0x3869) {
+		if RunningTests && (s.PC == 0x3869) {
 			fmt.Println("Functional tests passed")
 			return
+		}
+
+		if RunningTests && (s.PC == 0x0af5) {
+			fmt.Println("Interrupt tests passed")
+			return
+		}
+
+		if s.pendingInterrupt && ((s.P & CpuFlagI) == 0) {
+			irq(s, &cycles)
+			s.pendingInterrupt = false
+			continue
+		}
+
+		if s.pendingNMI {
+			nmi(s, &cycles)
+			s.pendingNMI = false
+			continue
 		}
 
 		if showInstructions {
@@ -541,7 +623,7 @@ func Run(s *State, showInstructions bool, breakAddress *uint16) {
 
 		case 0x4c: // JMP $0000
 			value := uint16(s.Memory[s.PC+1]) + uint16(s.Memory[s.PC+2])<<8
-			if runningTests && s.PC == value {
+			if RunningTests && s.PC == value {
 				fmt.Printf("Trap at $%04x\n", value)
 				os.Exit(0)
 			}
@@ -729,13 +811,7 @@ func Run(s *State, showInstructions bool, breakAddress *uint16) {
 			cycles += 2
 
 		case 0x00: // BRK
-			push16(s, s.PC+2)
-			s.P |= CpuFlagB
-			push8(s, s.P)
-			s.P |= CpuFlagI
-			s.PC = uint16(s.Memory[0xffff])<<8 + uint16(s.Memory[0xfffe])
-			cycles += 7
-
+			brk(s, &cycles)
 		case 0x40: // RTI
 			s.P = pop8(s) | CpuFlagR
 			value := pop16(s)
