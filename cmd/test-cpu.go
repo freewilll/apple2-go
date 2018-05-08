@@ -5,17 +5,19 @@ import (
 	"flag"
 	"fmt"
 	"mos6502go/cpu"
+	"mos6502go/mmu"
 	"mos6502go/utils"
 )
 
 func main() {
-	cpu.InitDisasm()
-
 	showInstructions := flag.Bool("show-instructions", false, "Show instructions code while running")
 	skipTest0 := flag.Bool("skip-functional-test", false, "Skip functional test")
 	skipTest1 := flag.Bool("skip-interrupt-test", false, "Skip interrupt test")
 	breakAddressString := flag.String("break", "", "Break on address")
 	flag.Parse()
+
+	cpu.InitDisasm()
+	memory := mmu.InitRAM()
 
 	var Roms = []string{
 		"6502_functional_test.bin.gz",
@@ -32,8 +34,10 @@ func main() {
 		}
 
 		fmt.Printf("Running %s\n", rom)
+
 		var s cpu.State
 		s.Init()
+		s.PC = 0x800
 		cpu.RunningTests = true
 
 		if i == 0 {
@@ -44,14 +48,27 @@ func main() {
 			cpu.RunningInterruptTests = true
 		}
 
-		bytes, err := utils.ReadMemoryFromFile(rom)
+		bytes, err := utils.ReadMemoryFromGzipFile(rom)
 		if err != nil {
 			panic(err)
 		}
 
-		for i := 0; i < len(bytes); i++ {
-			s.Memory[i] = bytes[i]
+		// Copy main RAM area 0x0000-0xbfff
+		for i := 0; i < 0xc000; i++ {
+			memory.PhysicalMemory.MainMemory[i] = bytes[i]
 		}
+
+		// Map writable RAM area in 0xc000-0xffff
+		var RomPretendingToBeRAM [0x4000]uint8
+		for i := 0x0; i < 0x4000; i++ {
+			RomPretendingToBeRAM[i] = bytes[0xc000+i]
+		}
+		for i := 0x0; i < 0x40; i++ {
+			memory.MemoryMap[0xc0+uint8(i)] = RomPretendingToBeRAM[i*0x100 : i*0x100+0x100]
+		}
+
+		s.Memory = memory
+		s.MemoryMap = &memory.MemoryMap
 
 		var breakAddress *uint16
 		if *breakAddressString != "" {
@@ -71,7 +88,7 @@ func main() {
 			breakAddress = &foo
 		}
 
-		cpu.Run(&s, *showInstructions, breakAddress)
+		cpu.Run(&s, *showInstructions, breakAddress, false, 0)
 		fmt.Printf("Finished running %s\n\n", rom)
 	}
 }

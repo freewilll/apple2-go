@@ -2,3 +2,4 @@ test-cpu
 cpu.prof
 mem.prof
 mos6502go.test
+apple2e.rom

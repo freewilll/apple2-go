@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func ReadMemoryFromFile(filename string) (data []byte, err error) {
+func ReadMemoryFromGzipFile(filename string) (data []byte, err error) {
 	f, err := os.Open(filename)
 	if err != nil {
 		return nil, err

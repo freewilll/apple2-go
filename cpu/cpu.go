@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"fmt"
+	"mos6502go/mmu"
 	"os"
 )
 
@@ -23,7 +24,8 @@ var (
 )
 
 type State struct {
-	Memory           [0x10000]uint8
+	Memory           *mmu.Memory
+	MemoryMap        *mmu.MemoryMap // For easy access, this is a shortcut for Memory.MemoryMap
 	pendingInterrupt bool
 	pendingNMI       bool
 	A                uint8
@@ -43,7 +45,6 @@ func (s *State) Init() {
 	s.X = 0
 	s.Y = 0
 	s.P = CpuFlagR | CpuFlagB | CpuFlagZ
-	s.PC = 0x800
 	s.SP = 0xff
 	s.pendingInterrupt = false
 	s.pendingNMI = false
@@ -102,14 +103,14 @@ func (s *State) isN() bool {
 }
 
 func push8(s *State, value uint8) {
-	s.Memory[0x100+uint16(s.SP)] = value
+	(*s.MemoryMap)[mmu.StackPage][s.SP] = value
 	s.SP -= 1
 	s.SP &= 0xff
 }
 
 func push16(s *State, value uint16) {
-	s.Memory[0x100+uint16(s.SP)] = uint8(value >> 8)
-	s.Memory[0xff+uint16(s.SP)] = uint8(value & 0xff)
+	(*s.MemoryMap)[mmu.StackPage][s.SP] = uint8(value >> 8)
+	(*s.MemoryMap)[mmu.StackPage][s.SP-1] = uint8(value & 0xff)
 	s.SP -= 2
 	s.SP &= 0xff
 }
@@ -117,24 +118,29 @@ func push16(s *State, value uint16) {
 func pop8(s *State) uint8 {
 	s.SP += 1
 	s.SP &= 0xff
-	return s.Memory[0x100+uint16(s.SP)]
+	return (*s.MemoryMap)[mmu.StackPage][s.SP]
 }
 
 func pop16(s *State) uint16 {
 	s.SP += 2
 	s.SP &= 0xff
-	lsb := uint16(s.Memory[0xff+uint16(s.SP)])
-	msb := uint16(s.Memory[0x100+uint16(s.SP)])
+	msb := uint16((*s.MemoryMap)[mmu.StackPage][s.SP])
+	lsb := uint16((*s.MemoryMap)[mmu.StackPage][s.SP-1])
 	return lsb + msb<<8
 }
 
 func readMemory(s *State, address uint16) uint8 {
-	return s.Memory[address]
+	if (address >= 0xc000) && (address < 0xc100) {
+		fmt.Printf("TODO read %04x\n", address)
+		return 0
+	}
+
+	return (*s.MemoryMap)[uint8(address>>8)][uint8(address&0xff)]
 }
 
 // Handle a write to a magic test address that triggers an interrupt and/or an NMI
 func writeInterruptTestOpenCollector(s *State, address uint16, value uint8) {
-	oldValue := s.Memory[address]
+	oldValue := readMemory(s, address)
 
 	oldInterrupt := (oldValue & 0x1) == 0x1
 	oldNMI := (oldValue & 0x2) == 0x2
@@ -150,7 +156,7 @@ func writeInterruptTestOpenCollector(s *State, address uint16, value uint8) {
 		s.pendingNMI = NMI
 	}
 
-	s.Memory[address] = value
+	(*s.MemoryMap)[uint8(address>>8)][uint8(address&0xff)] = value
 }
 
 func writeMemory(s *State, address uint16, value uint8) {
@@ -159,20 +165,35 @@ func writeMemory(s *State, address uint16, value uint8) {
 		return
 	}
 
-	s.Memory[address] = value
+	if address >= 0xc000 {
+		if address == mmu.CLRCXROM {
+			mmu.MapFirstHalfOfIO(s.Memory)
+		} else if address == mmu.SETCXROM {
+			mmu.MapSecondHalfOfIO(s.Memory)
+		} else {
+			fmt.Printf("TODO write %04x\n", address)
+		}
+		return
+	}
+
+	if address >= 0x400 && address < 0x800 {
+		fmt.Printf("Text page write %04x: %02x\n", address, value)
+	}
+
+	(*s.MemoryMap)[uint8(address>>8)][uint8(address&0xff)] = value
 
 	if RunningFunctionalTests && address == 0x200 {
-		testNumber := s.Memory[0x200]
+		testNumber := readMemory(s, 0x200)
 		if testNumber == 0xf0 {
 			fmt.Println("Opcode testing completed")
 		} else {
-			fmt.Printf("Test %d OK\n", s.Memory[0x200])
+			fmt.Printf("Test %d OK\n", readMemory(s, 0x200))
 		}
 	}
 }
 
 func branch(s *State, cycles *int, instructionName string, doBranch bool) {
-	value := s.Memory[s.PC+1]
+	value := readMemory(s, s.PC+1)
 
 	var relativeAddress uint16
 	if (value & 0x80) == 0 {
@@ -203,28 +224,28 @@ func branch(s *State, cycles *int, instructionName string, doBranch bool) {
 func getAddressFromAddressMode(s *State, addressMode byte) (result uint16, pageBoundaryCrossed bool) {
 	switch addressMode {
 	case AmZeroPage:
-		result = uint16(s.Memory[s.PC+1])
+		result = uint16(readMemory(s, s.PC+1))
 	case AmZeroPageX:
-		result = (uint16(s.Memory[s.PC+1]) + uint16(s.X)) & 0xff
+		result = (uint16(readMemory(s, s.PC+1)) + uint16(s.X)) & 0xff
 	case AmZeroPageY:
-		result = (uint16(s.Memory[s.PC+1]) + uint16(s.Y)) & 0xff
+		result = (uint16(readMemory(s, s.PC+1)) + uint16(s.Y)) & 0xff
 	case AmAbsolute:
-		result = uint16(s.Memory[s.PC+1]) + uint16(s.Memory[s.PC+2])<<8
+		result = uint16(readMemory(s, s.PC+1)) + uint16(readMemory(s, s.PC+2))<<8
 	case AmAbsoluteX:
-		value := uint16(s.Memory[s.PC+1]) + uint16(s.Memory[s.PC+2])<<8
+		value := uint16(readMemory(s, s.PC+1)) + uint16(readMemory(s, s.PC+2))<<8
 		pageBoundaryCrossed = (value & 0xff00) != ((value + uint16(s.X)) & 0xff00)
 		result = value + uint16(s.X)
 	case AmAbsoluteY:
-		value := uint16(s.Memory[s.PC+1]) + uint16(s.Memory[s.PC+2])<<8
+		value := uint16(readMemory(s, s.PC+1)) + uint16(readMemory(s, s.PC+2))<<8
 		pageBoundaryCrossed = (value & 0xff00) != ((value + uint16(s.Y)) & 0xff00)
 		result = value + uint16(s.Y)
 	case AmIndirectX:
-		zeroPageAddress := (s.Memory[s.PC+1] + s.X) & 0xff
-		result = uint16(s.Memory[zeroPageAddress]) + uint16(s.Memory[zeroPageAddress+1])<<8
+		zeroPageAddress := (readMemory(s, s.PC+1) + s.X) & 0xff
+		result = uint16(readMemory(s, uint16(zeroPageAddress))) + uint16(readMemory(s, uint16(zeroPageAddress)+1))<<8
 	case AmIndirectY:
-		address := s.Memory[s.PC+1]
-		lsb := uint16(s.Memory[address])
-		msb := uint16(s.Memory[address+1])
+		address := uint16(readMemory(s, s.PC+1))
+		lsb := uint16(readMemory(s, address))
+		msb := uint16(readMemory(s, address+1))
 		value := lsb + msb<<8
 		pageBoundaryCrossed = (value & 0xff00) != ((value + uint16(s.Y)) & 0xff00)
 		result = value + uint16(s.Y)
@@ -238,47 +259,47 @@ func getAddressFromAddressMode(s *State, addressMode byte) (result uint16, pageB
 func readMemoryWithAddressMode(s *State, addressMode byte) (result uint8, pageBoundaryCrossed bool) {
 	switch addressMode {
 	case AmImmediate:
-		result = s.Memory[s.PC+1]
+		result = readMemory(s, s.PC+1)
 		s.PC += 2
 	case AmZeroPage:
 		var address uint16
 		address, pageBoundaryCrossed = getAddressFromAddressMode(s, addressMode)
-		result = s.Memory[address]
+		result = readMemory(s, address)
 		s.PC += 2
 	case AmZeroPageX:
 		var address uint16
 		address, pageBoundaryCrossed = getAddressFromAddressMode(s, addressMode)
-		result = s.Memory[address]
+		result = readMemory(s, address)
 		s.PC += 2
 	case AmZeroPageY:
 		var address uint16
 		address, pageBoundaryCrossed = getAddressFromAddressMode(s, addressMode)
-		result = s.Memory[address]
+		result = readMemory(s, address)
 		s.PC += 2
 	case AmAbsolute:
 		var address uint16
 		address, pageBoundaryCrossed = getAddressFromAddressMode(s, addressMode)
-		result = s.Memory[address]
+		result = readMemory(s, address)
 		s.PC += 3
 	case AmAbsoluteX:
 		var address uint16
 		address, pageBoundaryCrossed = getAddressFromAddressMode(s, addressMode)
-		result = s.Memory[address]
+		result = readMemory(s, address)
 		s.PC += 3
 	case AmAbsoluteY:
 		var address uint16
 		address, pageBoundaryCrossed = getAddressFromAddressMode(s, addressMode)
-		result = s.Memory[address]
+		result = readMemory(s, address)
 		s.PC += 3
 	case AmIndirectX:
 		var address uint16
 		address, pageBoundaryCrossed = getAddressFromAddressMode(s, addressMode)
-		result = s.Memory[address]
+		result = readMemory(s, address)
 		s.PC += 2
 	case AmIndirectY:
 		var address uint16
 		address, pageBoundaryCrossed = getAddressFromAddressMode(s, addressMode)
-		result = s.Memory[address]
+		result = readMemory(s, address)
 		s.PC += 2
 	default:
 		result = 0
@@ -482,7 +503,7 @@ func sbc(s *State, cycles *int, addressMode byte) {
 }
 
 func bit(s *State, address uint16) {
-	value := s.Memory[address]
+	value := readMemory(s, address)
 	s.setN(value)
 	s.setV((value & 0x40) != 0)
 	s.setZ(value & s.A)
@@ -494,14 +515,14 @@ func preProcessShift(s *State, cycles *int, addressMode byte) (address uint16, v
 		value = s.A
 	} else {
 		address, _ = getAddressFromAddressMode(s, addressMode)
-		value = s.Memory[address]
+		value = readMemory(s, address)
 	}
 
 	if addressMode == AmAccumulator {
 		value = s.A
 	} else {
 		address, _ = getAddressFromAddressMode(s, addressMode)
-		value = s.Memory[address]
+		value = readMemory(s, address)
 	}
 
 	return
@@ -559,7 +580,7 @@ func brk(s *State, cycles *int) {
 	s.P |= CpuFlagB
 	push8(s, s.P)
 	s.P |= CpuFlagI
-	s.PC = uint16(s.Memory[0xffff])<<8 + uint16(s.Memory[0xfffe])
+	s.PC = uint16(readMemory(s, 0xffff))<<8 + uint16(readMemory(s, 0xfffe))
 	*cycles += 7
 }
 
@@ -568,7 +589,7 @@ func irq(s *State, cycles *int) {
 	s.P &= ^CpuFlagB
 	push8(s, s.P)
 	s.P |= CpuFlagI
-	s.PC = uint16(s.Memory[0xffff])<<8 + uint16(s.Memory[0xfffe])
+	s.PC = uint16(readMemory(s, 0xffff))<<8 + uint16(readMemory(s, 0xfffe))
 	*cycles += 7
 }
 
@@ -577,14 +598,18 @@ func nmi(s *State, cycles *int) {
 	s.P &= ^CpuFlagB
 	push8(s, s.P)
 	s.P |= CpuFlagI
-	s.PC = uint16(s.Memory[0xfffb])<<8 + uint16(s.Memory[0xfffa])
+	s.PC = uint16(readMemory(s, 0xfffb))<<8 + uint16(readMemory(s, 0xfffa))
 	*cycles += 7
 }
 
-func Run(s *State, showInstructions bool, breakAddress *uint16) {
+func Run(s *State, showInstructions bool, breakAddress *uint16, disableBell bool, wantedCycles int) {
 	cycles := 0
 
 	for {
+		if (wantedCycles != 0) && (cycles >= wantedCycles) {
+			return
+		}
+
 		if RunningTests && (s.PC == 0x3869) {
 			fmt.Println("Functional tests passed")
 			return
@@ -611,7 +636,7 @@ func Run(s *State, showInstructions bool, breakAddress *uint16) {
 			PrintInstruction(s)
 		}
 
-		opcode := s.Memory[s.PC]
+		opcode := readMemory(s, s.PC)
 		addressMode := OpCodes[opcode].AddressingMode.Mode
 
 		if breakAddress != nil && s.PC == *breakAddress {
@@ -622,7 +647,7 @@ func Run(s *State, showInstructions bool, breakAddress *uint16) {
 		switch opcode {
 
 		case 0x4c: // JMP $0000
-			value := uint16(s.Memory[s.PC+1]) + uint16(s.Memory[s.PC+2])<<8
+			value := uint16(readMemory(s, s.PC+1)) + uint16(readMemory(s, s.PC+2))<<8
 			if RunningTests && s.PC == value {
 				fmt.Printf("Trap at $%04x\n", value)
 				os.Exit(0)
@@ -630,15 +655,21 @@ func Run(s *State, showInstructions bool, breakAddress *uint16) {
 			s.PC = value
 			cycles += 3
 		case 0x6c: // JMP ($0000)
-			value := uint16(s.Memory[s.PC+1]) + uint16(s.Memory[s.PC+2])<<8
-			s.PC = uint16(s.Memory[value]) + uint16(s.Memory[value+1])<<8
+			value := uint16(readMemory(s, s.PC+1)) + uint16(readMemory(s, s.PC+2))<<8
+			s.PC = uint16(readMemory(s, value)) + uint16(readMemory(s, value+1))<<8
 			cycles += 5
 
 		case 0x20: // JSR $0000
-			value := uint16(s.Memory[s.PC+1]) + uint16(s.Memory[s.PC+2])<<8
+			value := uint16(readMemory(s, s.PC+1)) + uint16(readMemory(s, s.PC+2))<<8
+			cycles += 6
+
+			if disableBell && value == 0xfca8 {
+				s.PC += 3
+				continue
+			}
+
 			push16(s, s.PC+2)
 			s.PC = value
-			cycles += 6
 
 		case 0x60: // RTS
 			value := pop16(s)
@@ -819,12 +850,12 @@ func Run(s *State, showInstructions bool, breakAddress *uint16) {
 			cycles += 6
 
 		case 0x24: // BIT $00
-			address := s.Memory[s.PC+1]
+			address := readMemory(s, s.PC+1)
 			bit(s, uint16(address))
 			s.PC += 2
 			cycles += 3
 		case 0x2C: // BIT $0000
-			address := uint16(s.Memory[s.PC+1]) + uint16(s.Memory[s.PC+2])<<8
+			address := uint16(readMemory(s, s.PC+1)) + uint16(readMemory(s, s.PC+2))<<8
 			bit(s, address)
 			s.PC += 3
 			cycles += 4
@@ -869,7 +900,7 @@ func Run(s *State, showInstructions bool, breakAddress *uint16) {
 
 		case 0xe6, 0xf6, 0xee, 0xfe: // INC
 			address, _ := getAddressFromAddressMode(s, addressMode)
-			value := s.Memory[address]
+			value := readMemory(s, address)
 			value = (value + 1) & 0xff
 			s.setZ(value)
 			s.setN(value)
@@ -878,7 +909,7 @@ func Run(s *State, showInstructions bool, breakAddress *uint16) {
 
 		case 0xc6, 0xd6, 0xce, 0xde: // DEC
 			address, _ := getAddressFromAddressMode(s, addressMode)
-			value := s.Memory[address]
+			value := readMemory(s, address)
 			value = (value - 1) & 0xff
 			s.setZ(value)
 			s.setN(value)
