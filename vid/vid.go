@@ -1,11 +1,11 @@
-package main
+package vid
 
 import (
 	"image"
-	"log"
+
+	"mos6502go/mmu"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
 )
 
 const (
@@ -15,13 +15,11 @@ const (
 )
 
 var (
-	ebitenImage  *ebiten.Image
-	memory       [0x100000]byte
 	flashCounter int
 	flashOn      bool
 )
 
-func drawTextScreen(screen *ebiten.Image) error {
+func DrawTextScreen(memory *mmu.MemoryMap, screen *ebiten.Image, charMap *ebiten.Image) error {
 	flashCounter--
 	if flashCounter < 0 {
 		flashCounter = flashFrames
@@ -36,7 +34,7 @@ func drawTextScreen(screen *ebiten.Image) error {
 		base := 128*(y%8) + 40*(y/8)
 		for x := 0; x < 40; x++ {
 			offset := textVideoMemory + base + x
-			value := memory[offset]
+			value := (*memory)[uint8(offset>>8)][uint8(offset&0xff)]
 			inverted := false
 
 			if (value & 0xc0) == 0 {
@@ -72,38 +70,11 @@ func drawTextScreen(screen *ebiten.Image) error {
 
 			op.ColorM.Scale(0.20, 0.75, 0.20, 1)
 
-			if err := screen.DrawImage(ebitenImage, op); err != nil {
+			if err := screen.DrawImage(charMap, op); err != nil {
 				return err
 			}
 		}
 	}
 
 	return nil
-}
-
-func update(screen *ebiten.Image) error {
-	return drawTextScreen(screen)
-}
-
-func addTestTextScreenData() {
-	// Clear screen
-	for i := 0; i < 0x400; i++ {
-		memory[textVideoMemory+i] = 160
-	}
-
-	for i := 0; i < 255; i++ {
-		memory[textVideoMemory+i] = byte(i)
-	}
-}
-
-func main() {
-	addTestTextScreenData()
-
-	var err error
-	ebitenImage, _, err = ebitenutil.NewImageFromFile("./pr-latin1.png", ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ebiten.Run(update, 280*screenSizeFactor, 192*screenSizeFactor, 2, "Apple //")
 }

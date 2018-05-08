@@ -176,10 +176,6 @@ func writeMemory(s *State, address uint16, value uint8) {
 		return
 	}
 
-	if address >= 0x400 && address < 0x800 {
-		fmt.Printf("Text page write %04x: %02x\n", address, value)
-	}
-
 	(*s.MemoryMap)[uint8(address>>8)][uint8(address&0xff)] = value
 
 	if RunningFunctionalTests && address == 0x200 {
