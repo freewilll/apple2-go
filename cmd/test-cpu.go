@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"mos6502go/cpu"
+	"mos6502go/keyboard"
 	"mos6502go/mmu"
 	"mos6502go/utils"
 )
@@ -87,6 +88,8 @@ func main() {
 			}
 			breakAddress = &foo
 		}
+
+		keyboard.Init()
 
 		cpu.Run(&s, *showInstructions, breakAddress, false, 0)
 		fmt.Printf("Finished running %s\n\n", rom)

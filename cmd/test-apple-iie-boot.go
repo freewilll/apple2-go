@@ -8,6 +8,7 @@ import (
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 
 	"mos6502go/cpu"
+	"mos6502go/keyboard"
 	"mos6502go/mmu"
 	"mos6502go/vid"
 )
@@ -49,6 +50,7 @@ func checkResetKeys() {
 }
 
 func update(screen *ebiten.Image) error {
+	keyboard.Poll()
 	checkResetKeys()
 
 	cpu.Run(&cpuState, *showInstructions, nil, *disableBell, 1024000/60)
@@ -67,6 +69,9 @@ func main() {
 	cpuState.Memory = memory
 	cpuState.PageTable = &memory.PageTable
 	cpuState.Init()
+
+	keyboard.Init()
+
 	reset()
 
 	var err error

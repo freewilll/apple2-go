@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"fmt"
+	"mos6502go/keyboard"
 	"mos6502go/mmu"
 	"os"
 )
@@ -131,6 +132,23 @@ func pop16(s *State) uint16 {
 
 func readMemory(s *State, address uint16) uint8 {
 	if (address >= 0xc000) && (address < 0xc100) {
+
+		if (address == mmu.KEYBOARD) || (address == mmu.STROBE) {
+			keyBoardData, strobe := keyboard.Read()
+			if address == mmu.KEYBOARD {
+				return keyBoardData
+			} else {
+				keyboard.ResetStrobe()
+				return strobe
+			}
+		} else if address == mmu.RDCXROM {
+			// using external slot ROM not implemented
+			return 0
+		} else if address == mmu.RD80VID {
+			// using 80-column display mode not implemented
+			return 0
+		}
+
 		fmt.Printf("TODO read %04x\n", address)
 		return 0
 	}
@@ -166,7 +184,9 @@ func writeMemory(s *State, address uint16, value uint8) {
 	}
 
 	if address >= 0xc000 {
-		if address == mmu.CLRCXROM {
+		if address == mmu.STROBE {
+			keyboard.ResetStrobe()
+		} else if address == mmu.CLRCXROM {
 			mmu.MapFirstHalfOfIO(s.Memory)
 		} else if address == mmu.SETCXROM {
 			mmu.MapSecondHalfOfIO(s.Memory)

@@ -30,6 +30,23 @@ const (
 	CLRALTCH = 0xC00E // use alternate character set ROM
 	SETALTCH = 0xC00F
 	STROBE   = 0xC010 // strobe (unlatch) keyboard data
+
+	RDLCBNK2 = 0xC011 // reading from LC bank $Dx 2
+	RDLCRAM  = 0xC012 // reading from LC RAM
+	RDRAMRD  = 0xC013 // reading from auxilliary 48K
+	RDRAMWR  = 0xC014 // writing to auxilliary 48K
+	RDCXROM  = 0xC015 // using external slot ROM
+	RDAUXZP  = 0xC016 // using auxilliary ZP, stack, & LC
+	RDC3ROM  = 0xC017 // using external slot C3 ROM
+	RD80COL  = 0xC018 // using 80-column memory mapping
+	RDVBLBAR = 0xC019 // not VBL (VBL signal low)
+	RDTEXT   = 0xC01A // using text mode
+	RDMIXED  = 0xC01B // using mixed mode
+	RDPAGE2  = 0xC01C // using text/graphics page2
+	RDHIRES  = 0xC01D // using Hi-res graphics mode
+	RDALTCH  = 0xC01E // using alternate character set ROM
+	RD80VID  = 0xC01F // using 80-column display mode
+
 )
 
 type PhysicalMemory struct {
