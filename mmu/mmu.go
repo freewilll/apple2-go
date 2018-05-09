@@ -3,6 +3,8 @@ package mmu
 import (
 	"fmt"
 	"io/ioutil"
+	"mos6502go/keyboard"
+	"mos6502go/system"
 )
 
 const RomPath = "apple2e.rom"
@@ -120,4 +122,63 @@ func InitRAM() {
 	}
 
 	return
+}
+
+func ReadMemory(address uint16) uint8 {
+	if (address >= 0xc000) && (address < 0xc100) {
+
+		if (address == KEYBOARD) || (address == STROBE) {
+			keyBoardData, strobe := keyboard.Read()
+			if address == KEYBOARD {
+				return keyBoardData
+			} else {
+				keyboard.ResetStrobe()
+				return strobe
+			}
+		} else if address == RDCXROM {
+			// using external slot ROM not implemented
+			return 0
+		} else if address == RD80VID {
+			// using 80-column display mode not implemented
+			return 0
+		}
+
+		fmt.Printf("TODO read %04x\n", address)
+		return 0
+	}
+
+	return PageTable[address>>8][address&0xff]
+}
+
+func WriteMemory(address uint16, value uint8) {
+	if system.RunningInterruptTests && address == 0xbffc {
+		oldValue := ReadMemory(address)
+		system.WriteInterruptTestOpenCollector(address, oldValue, value)
+		PageTable[uint8(address>>8)][uint8(address&0xff)] = value
+		return
+	}
+
+	if address >= 0xc000 {
+		if address == STROBE {
+			keyboard.ResetStrobe()
+		} else if address == CLRCXROM {
+			MapFirstHalfOfIO()
+		} else if address == SETCXROM {
+			MapSecondHalfOfIO()
+		} else {
+			fmt.Printf("TODO write %04x\n", address)
+		}
+		return
+	}
+
+	PageTable[uint8(address>>8)][uint8(address&0xff)] = value
+
+	if system.RunningFunctionalTests && address == 0x200 {
+		testNumber := ReadMemory(0x200)
+		if testNumber == 0xf0 {
+			fmt.Println("Opcode testing completed")
+		} else {
+			fmt.Printf("Test %d OK\n", ReadMemory(0x200))
+		}
+	}
 }

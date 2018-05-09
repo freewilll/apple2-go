@@ -7,6 +7,7 @@ import (
 	"mos6502go/cpu"
 	"mos6502go/keyboard"
 	"mos6502go/mmu"
+	"mos6502go/system"
 	"mos6502go/utils"
 )
 
@@ -39,14 +40,14 @@ func main() {
 
 		cpu.Init()
 		cpu.State.PC = 0x800
-		cpu.RunningTests = true
+		system.RunningTests = true
 
 		if i == 0 {
-			cpu.RunningFunctionalTests = true
+			system.RunningFunctionalTests = true
 		}
 
 		if i == 1 {
-			cpu.RunningInterruptTests = true
+			system.RunningInterruptTests = true
 		}
 
 		bytes, err := utils.ReadMemoryFromGzipFile(rom)
