@@ -27,8 +27,30 @@ var (
 var cpuState cpu.State
 var showInstructions *bool
 var disableBell *bool
+var resetKeysDown bool
+
+func reset() {
+	bootVector := 0xfffc
+	lsb := cpuState.PageTable[bootVector>>8][bootVector&0xff] // TODO move readMemory to mmu
+	msb := cpuState.PageTable[(bootVector+1)>>8][(bootVector+1)&0xff]
+	cpuState.PC = uint16(lsb) + uint16(msb)<<8
+}
+
+// checkResetKeys check ctrl-alt-R has been pressed. Releasing the R does a warm reset
+func checkResetKeys() {
+	if ebiten.IsKeyPressed(ebiten.KeyControl) && ebiten.IsKeyPressed(ebiten.KeyAlt) && ebiten.IsKeyPressed(ebiten.KeyR) {
+		resetKeysDown = true
+	} else if ebiten.IsKeyPressed(ebiten.KeyControl) && ebiten.IsKeyPressed(ebiten.KeyAlt) && !ebiten.IsKeyPressed(ebiten.KeyR) && resetKeysDown {
+		resetKeysDown = false
+		reset()
+	} else {
+		resetKeysDown = false
+	}
+}
 
 func update(screen *ebiten.Image) error {
+	checkResetKeys()
+
 	cpu.Run(&cpuState, *showInstructions, nil, *disableBell, 1024000/60)
 	return vid.DrawTextScreen(cpuState.PageTable, screen, charMap)
 }
@@ -45,11 +67,7 @@ func main() {
 	cpuState.Memory = memory
 	cpuState.PageTable = &memory.PageTable
 	cpuState.Init()
-
-	bootVector := 0xfffc
-	lsb := cpuState.PageTable[bootVector>>8][bootVector&0xff] // TODO move readMemory to mmu
-	msb := cpuState.PageTable[(bootVector+1)>>8][(bootVector+1)&0xff]
-	cpuState.PC = uint16(lsb) + uint16(msb)<<8
+	reset()
 
 	var err error
 	charMap, _, err = ebitenutil.NewImageFromFile("./pr-latin1.png", ebiten.FilterNearest)
