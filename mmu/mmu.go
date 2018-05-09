@@ -75,6 +75,14 @@ func MapSecondHalfOfIO(m *Memory) {
 	}
 }
 
+// emptySlot zeroes all RAM for a slot
+func emptySlot(m *Memory, slot int) {
+	for i := slot * 0x100; i < (slot+1)*0x100; i++ {
+		m.PhysicalMemory.RomC1[i] = 0
+		m.PhysicalMemory.RomC2[i] = 0
+	}
+}
+
 func readApple2eROM(m *Memory) {
 	bytes, err := ioutil.ReadFile(RomPath)
 	if err != nil {
@@ -91,6 +99,12 @@ func readApple2eROM(m *Memory) {
 	for i := 0x0; i < 0x3000; i++ {
 		m.PhysicalMemory.UpperROM[i] = bytes[i+0x1000]
 	}
+
+	// Empty slots that aren't yet implemented
+	emptySlot(m, 3)
+	emptySlot(m, 4)
+	emptySlot(m, 6)
+	emptySlot(m, 7)
 }
 
 func InitApple2eROM(m *Memory) {
