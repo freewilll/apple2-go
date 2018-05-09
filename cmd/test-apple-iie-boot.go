@@ -17,16 +17,15 @@ const (
 	flashFrames      = 8     // Number of frames when FLASH mode is toggled
 )
 
-var cpuState cpu.State
 var showInstructions *bool
 var disableBell *bool
 var resetKeysDown bool
 
 func reset() {
 	bootVector := 0xfffc
-	lsb := cpuState.PageTable[bootVector>>8][bootVector&0xff] // TODO move readMemory to mmu
-	msb := cpuState.PageTable[(bootVector+1)>>8][(bootVector+1)&0xff]
-	cpuState.PC = uint16(lsb) + uint16(msb)<<8
+	lsb := mmu.PageTable[bootVector>>8][bootVector&0xff] // TODO move readMemory to mmu
+	msb := mmu.PageTable[(bootVector+1)>>8][(bootVector+1)&0xff]
+	cpu.State.PC = uint16(lsb) + uint16(msb)<<8
 }
 
 // checkResetKeys check ctrl-alt-R has been pressed. Releasing the R does a warm reset
@@ -45,8 +44,8 @@ func update(screen *ebiten.Image) error {
 	keyboard.Poll()
 	checkResetKeys()
 
-	cpu.Run(&cpuState, *showInstructions, nil, *disableBell, 1024000/60)
-	return video.DrawTextScreen(cpuState.PageTable, screen)
+	cpu.Run(*showInstructions, nil, *disableBell, 1024000/60)
+	return video.DrawTextScreen(screen)
 }
 
 func main() {
@@ -55,12 +54,10 @@ func main() {
 	flag.Parse()
 
 	cpu.InitDisasm()
-	memory := mmu.InitRAM()
-	mmu.InitApple2eROM(memory)
+	mmu.InitRAM()
+	mmu.InitApple2eROM()
 
-	cpuState.Memory = memory
-	cpuState.PageTable = &memory.PageTable
-	cpuState.Init()
+	cpu.Init()
 
 	keyboard.Init()
 	video.Init()

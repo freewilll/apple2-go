@@ -24,9 +24,7 @@ var (
 	RunningInterruptTests  bool
 )
 
-type State struct {
-	Memory           *mmu.Memory
-	PageTable        *mmu.PageTable // For easy access, this is a shortcut for Memory.PageTable
+var State struct {
 	pendingInterrupt bool
 	pendingNMI       bool
 	A                uint8
@@ -37,100 +35,100 @@ type State struct {
 	P                uint8
 }
 
-func (s *State) Init() {
+func Init() {
 	RunningTests = false
 	RunningFunctionalTests = false
 	RunningInterruptTests = false
 
-	s.A = 0
-	s.X = 0
-	s.Y = 0
-	s.P = CpuFlagR | CpuFlagB | CpuFlagZ
-	s.SP = 0xff
-	s.pendingInterrupt = false
-	s.pendingNMI = false
+	State.A = 0
+	State.X = 0
+	State.Y = 0
+	State.P = CpuFlagR | CpuFlagB | CpuFlagZ
+	State.SP = 0xff
+	State.pendingInterrupt = false
+	State.pendingNMI = false
 }
 
-func (s *State) setC(value bool) {
+func setC(value bool) {
 	if value {
-		s.P |= CpuFlagC
+		State.P |= CpuFlagC
 	} else {
-		s.P &= ^CpuFlagC
+		State.P &= ^CpuFlagC
 	}
 }
 
-func (s *State) setV(value bool) {
+func setV(value bool) {
 	if value {
-		s.P |= CpuFlagV
+		State.P |= CpuFlagV
 	} else {
-		s.P &= ^CpuFlagV
+		State.P &= ^CpuFlagV
 	}
 }
 
-func (s *State) setN(value uint8) {
+func setN(value uint8) {
 	if (value & 0x80) != 0 {
-		s.P |= CpuFlagN
+		State.P |= CpuFlagN
 	} else {
-		s.P &= ^CpuFlagN
+		State.P &= ^CpuFlagN
 	}
 }
 
-func (s *State) setZ(value uint8) {
+func setZ(value uint8) {
 	if value == 0 {
-		s.P |= CpuFlagZ
+		State.P |= CpuFlagZ
 	} else {
-		s.P &= ^CpuFlagZ
+		State.P &= ^CpuFlagZ
 	}
 }
 
-func (s *State) isC() bool {
-	return (s.P & CpuFlagC) != 0
+func isC() bool {
+	return (State.P & CpuFlagC) != 0
 }
 
-func (s *State) isZ() bool {
-	return (s.P & CpuFlagZ) != 0
+func isZ() bool {
+	return (State.P & CpuFlagZ) != 0
 }
 
-func (s *State) isD() bool {
-	return (s.P & CpuFlagD) != 0
+func isD() bool {
+	return (State.P & CpuFlagD) != 0
 }
 
-func (s *State) isV() bool {
-	return (s.P & CpuFlagV) != 0
+func isV() bool {
+	return (State.P & CpuFlagV) != 0
 }
 
-func (s *State) isN() bool {
-	return (s.P & CpuFlagN) != 0
+func isN() bool {
+	return (State.P & CpuFlagN) != 0
 }
 
-func push8(s *State, value uint8) {
-	s.PageTable[mmu.StackPage][s.SP] = value
-	s.SP -= 1
-	s.SP &= 0xff
+func push8(value uint8) {
+	mmu.PageTable[mmu.StackPage][State.SP] = value
+	State.SP -= 1
+	State.SP &= 0xff
 }
 
-func push16(s *State, value uint16) {
-	s.PageTable[mmu.StackPage][s.SP] = uint8(value >> 8)
-	s.PageTable[mmu.StackPage][s.SP-1] = uint8(value & 0xff)
-	s.SP -= 2
-	s.SP &= 0xff
+func push16(value uint16) {
+	mmu.PageTable[mmu.StackPage][State.SP] = uint8(value >> 8)
+	mmu.PageTable[mmu.StackPage][State.SP-1] = uint8(value & 0xff)
+	State.SP -= 2
+	State.SP &= 0xff
 }
 
-func pop8(s *State) uint8 {
-	s.SP += 1
-	s.SP &= 0xff
-	return s.PageTable[mmu.StackPage][s.SP]
+func pop8() uint8 {
+	State.SP += 1
+	State.SP &= 0xff
+	return mmu.PageTable[mmu.StackPage][State.SP]
 }
 
-func pop16(s *State) uint16 {
-	s.SP += 2
-	s.SP &= 0xff
-	msb := uint16(s.PageTable[mmu.StackPage][s.SP])
-	lsb := uint16(s.PageTable[mmu.StackPage][s.SP-1])
+func pop16() uint16 {
+	State.SP += 2
+	State.SP &= 0xff
+	msb := uint16(mmu.PageTable[mmu.StackPage][State.SP])
+	lsb := uint16(mmu.PageTable[mmu.StackPage][State.SP-1])
 	return lsb + msb<<8
 }
 
-func readMemory(s *State, address uint16) uint8 {
+func readMemory(address uint16) uint8 {
 	if (address >= 0xc000) && (address < 0xc100) {
 
 		if (address == mmu.KEYBOARD) || (address == mmu.STROBE) {
@@ -153,12 +151,12 @@ func readMemory(s *State, address uint16) uint8 {
 		return 0
 	}
 
-	return s.PageTable[address>>8][address&0xff]
+	return mmu.PageTable[address>>8][address&0xff]
 }
 
 // Handle a write to a magic test address that triggers an interrupt and/or an NMI
-func writeInterruptTestOpenCollector(s *State, address uint16, value uint8) {
-	oldValue := readMemory(s, address)
+func writeInterruptTestOpenCollector(address uint16, value uint8) {
+	oldValue := readMemory(address)
 
 	oldInterrupt := (oldValue & 0x1) == 0x1
 	oldNMI := (oldValue & 0x2) == 0x2
@@ -167,19 +165,19 @@ func writeInterruptTestOpenCollector(s *State, address uint16, value uint8) {
 	NMI := (value & 0x2) == 0x2
 
 	if oldInterrupt != interrupt {
-		s.pendingInterrupt = interrupt
+		State.pendingInterrupt = interrupt
 	}
 
 	if oldNMI != NMI {
-		s.pendingNMI = NMI
+		State.pendingNMI = NMI
 	}
 
-	s.PageTable[address>>8][address&0xff] = value
+	mmu.PageTable[address>>8][address&0xff] = value
 }
 
-func writeMemory(s *State, address uint16, value uint8) {
+func writeMemory(address uint16, value uint8) {
 	if RunningInterruptTests && address == 0xbffc {
-		writeInterruptTestOpenCollector(s, address, value)
+		writeInterruptTestOpenCollector(address, value)
 		return
 	}
 
@@ -187,84 +185,84 @@ func writeMemory(s *State, address uint16, value uint8) {
 		if address == mmu.STROBE {
 			keyboard.ResetStrobe()
 		} else if address == mmu.CLRCXROM {
-			mmu.MapFirstHalfOfIO(s.Memory)
+			mmu.MapFirstHalfOfIO()
 		} else if address == mmu.SETCXROM {
-			mmu.MapSecondHalfOfIO(s.Memory)
+			mmu.MapSecondHalfOfIO()
 		} else {
 			fmt.Printf("TODO write %04x\n", address)
 		}
 		return
 	}
 
-	s.PageTable[uint8(address>>8)][uint8(address&0xff)] = value
+	mmu.PageTable[uint8(address>>8)][uint8(address&0xff)] = value
 
 	if RunningFunctionalTests && address == 0x200 {
-		testNumber := readMemory(s, 0x200)
+		testNumber := readMemory(0x200)
 		if testNumber == 0xf0 {
 			fmt.Println("Opcode testing completed")
 		} else {
-			fmt.Printf("Test %d OK\n", readMemory(s, 0x200))
+			fmt.Printf("Test %d OK\n", readMemory(0x200))
 		}
 	}
 }
 
-func branch(s *State, cycles *int, instructionName string, doBranch bool) {
-	value := readMemory(s, s.PC+1)
+func branch(cycles *int, instructionName string, doBranch bool) {
+	value := readMemory(State.PC + 1)
 
 	var relativeAddress uint16
 	if (value & 0x80) == 0 {
-		relativeAddress = s.PC + uint16(value) + 2
+		relativeAddress = State.PC + uint16(value) + 2
 	} else {
-		relativeAddress = s.PC + uint16(value) + 2 - 0x100
+		relativeAddress = State.PC + uint16(value) + 2 - 0x100
 	}
 
 	*cycles += 2
 	if doBranch {
-		if RunningTests && s.PC == relativeAddress {
+		if RunningTests && State.PC == relativeAddress {
 			fmt.Printf("Trap at $%04x\n", relativeAddress)
 			os.Exit(0)
 		}
 
-		samePage := (s.PC & 0xff00) != (relativeAddress & 0xff00)
+		samePage := (State.PC & 0xff00) != (relativeAddress & 0xff00)
 		if samePage {
 			*cycles += 1
 		} else {
 			*cycles += 2
 		}
-		s.PC = relativeAddress
+		State.PC = relativeAddress
 	} else {
-		s.PC += 2
+		State.PC += 2
 	}
 }
 
-func getAddressFromAddressMode(s *State, addressMode byte) (result uint16, pageBoundaryCrossed bool) {
+func getAddressFromAddressMode(addressMode byte) (result uint16, pageBoundaryCrossed bool) {
 	switch addressMode {
 	case AmZeroPage:
-		result = uint16(readMemory(s, s.PC+1))
+		result = uint16(readMemory(State.PC + 1))
 	case AmZeroPageX:
-		result = (uint16(readMemory(s, s.PC+1)) + uint16(s.X)) & 0xff
+		result = (uint16(readMemory(State.PC+1)) + uint16(State.X)) & 0xff
 	case AmZeroPageY:
-		result = (uint16(readMemory(s, s.PC+1)) + uint16(s.Y)) & 0xff
+		result = (uint16(readMemory(State.PC+1)) + uint16(State.Y)) & 0xff
 	case AmAbsolute:
-		result = uint16(readMemory(s, s.PC+1)) + uint16(readMemory(s, s.PC+2))<<8
+		result = uint16(readMemory(State.PC+1)) + uint16(readMemory(State.PC+2))<<8
 	case AmAbsoluteX:
-		value := uint16(readMemory(s, s.PC+1)) + uint16(readMemory(s, s.PC+2))<<8
-		pageBoundaryCrossed = (value & 0xff00) != ((value + uint16(s.X)) & 0xff00)
-		result = value + uint16(s.X)
+		value := uint16(readMemory(State.PC+1)) + uint16(readMemory(State.PC+2))<<8
+		pageBoundaryCrossed = (value & 0xff00) != ((value + uint16(State.X)) & 0xff00)
+		result = value + uint16(State.X)
 	case AmAbsoluteY:
-		value := uint16(readMemory(s, s.PC+1)) + uint16(readMemory(s, s.PC+2))<<8
-		pageBoundaryCrossed = (value & 0xff00) != ((value + uint16(s.Y)) & 0xff00)
-		result = value + uint16(s.Y)
+		value := uint16(readMemory(State.PC+1)) + uint16(readMemory(State.PC+2))<<8
+		pageBoundaryCrossed = (value & 0xff00) != ((value + uint16(State.Y)) & 0xff00)
+		result = value + uint16(State.Y)
 	case AmIndirectX:
-		zeroPageAddress := (readMemory(s, s.PC+1) + s.X) & 0xff
-		result = uint16(readMemory(s, uint16(zeroPageAddress))) + uint16(readMemory(s, uint16(zeroPageAddress)+1))<<8
+		zeroPageAddress := (readMemory(State.PC+1) + State.X) & 0xff
+		result = uint16(readMemory(uint16(zeroPageAddress))) + uint16(readMemory(uint16(zeroPageAddress)+1))<<8
 	case AmIndirectY:
-		address := uint16(readMemory(s, s.PC+1))
-		lsb := uint16(readMemory(s, address))
-		msb := uint16(readMemory(s, address+1))
+		address := uint16(readMemory(State.PC + 1))
+		lsb := uint16(readMemory(address))
+		msb := uint16(readMemory(address + 1))
 		value := lsb + msb<<8
-		pageBoundaryCrossed = (value & 0xff00) != ((value + uint16(s.Y)) & 0xff00)
-		result = value + uint16(s.Y)
+		pageBoundaryCrossed = (value & 0xff00) != ((value + uint16(State.Y)) & 0xff00)
+		result = value + uint16(State.Y)
 	default:
 		panic(fmt.Sprintf("Unknown address mode %d in getAddressFromAddressMode()", addressMode))
 	}
@@ -272,91 +270,91 @@ func getAddressFromAddressMode(s *State, addressMode byte) (result uint16, pageB
 	return result, pageBoundaryCrossed
 }
 
-func readMemoryWithAddressMode(s *State, addressMode byte) (result uint8, pageBoundaryCrossed bool) {
+func readMemoryWithAddressMode(addressMode byte) (result uint8, pageBoundaryCrossed bool) {
 	switch addressMode {
 	case AmImmediate:
-		result = readMemory(s, s.PC+1)
-		s.PC += 2
+		result = readMemory(State.PC + 1)
+		State.PC += 2
 	case AmZeroPage:
 		var address uint16
-		address, pageBoundaryCrossed = getAddressFromAddressMode(s, addressMode)
-		result = readMemory(s, address)
-		s.PC += 2
+		address, pageBoundaryCrossed = getAddressFromAddressMode(addressMode)
+		result = readMemory(address)
+		State.PC += 2
 	case AmZeroPageX:
 		var address uint16
-		address, pageBoundaryCrossed = getAddressFromAddressMode(s, addressMode)
-		result = readMemory(s, address)
-		s.PC += 2
+		address, pageBoundaryCrossed = getAddressFromAddressMode(addressMode)
+		result = readMemory(address)
+		State.PC += 2
 	case AmZeroPageY:
 		var address uint16
-		address, pageBoundaryCrossed = getAddressFromAddressMode(s, addressMode)
-		result = readMemory(s, address)
-		s.PC += 2
+		address, pageBoundaryCrossed = getAddressFromAddressMode(addressMode)
+		result = readMemory(address)
+		State.PC += 2
 	case AmAbsolute:
 		var address uint16
-		address, pageBoundaryCrossed = getAddressFromAddressMode(s, addressMode)
-		result = readMemory(s, address)
-		s.PC += 3
+		address, pageBoundaryCrossed = getAddressFromAddressMode(addressMode)
+		result = readMemory(address)
+		State.PC += 3
 	case AmAbsoluteX:
 		var address uint16
-		address, pageBoundaryCrossed = getAddressFromAddressMode(s, addressMode)
-		result = readMemory(s, address)
-		s.PC += 3
+		address, pageBoundaryCrossed = getAddressFromAddressMode(addressMode)
+		result = readMemory(address)
+		State.PC += 3
 	case AmAbsoluteY:
 		var address uint16
-		address, pageBoundaryCrossed = getAddressFromAddressMode(s, addressMode)
-		result = readMemory(s, address)
-		s.PC += 3
+		address, pageBoundaryCrossed = getAddressFromAddressMode(addressMode)
+		result = readMemory(address)
+		State.PC += 3
 	case AmIndirectX:
 		var address uint16
-		address, pageBoundaryCrossed = getAddressFromAddressMode(s, addressMode)
-		result = readMemory(s, address)
-		s.PC += 2
+		address, pageBoundaryCrossed = getAddressFromAddressMode(addressMode)
+		result = readMemory(address)
+		State.PC += 2
 	case AmIndirectY:
 		var address uint16
-		address, pageBoundaryCrossed = getAddressFromAddressMode(s, addressMode)
-		result = readMemory(s, address)
-		s.PC += 2
+		address, pageBoundaryCrossed = getAddressFromAddressMode(addressMode)
+		result = readMemory(address)
+		State.PC += 2
 	default:
 		result = 0
-		s.PC++
+		State.PC++
 	}
 
 	return result, pageBoundaryCrossed
 }
 
 // STA, STX and STY
-func store(s *State, cycles *int, regValue uint8, addressMode byte) {
-	address, _ := getAddressFromAddressMode(s, addressMode)
-	writeMemory(s, address, regValue)
+func store(cycles *int, regValue uint8, addressMode byte) {
+	address, _ := getAddressFromAddressMode(addressMode)
+	writeMemory(address, regValue)
 
 	switch addressMode {
 	case AmZeroPage:
-		s.PC += 2
+		State.PC += 2
 		*cycles += 3
 	case AmZeroPageX:
-		s.PC += 2
+		State.PC += 2
 		*cycles += 4
 	case AmZeroPageY:
-		s.PC += 2
+		State.PC += 2
 		*cycles += 4
 	case AmAbsolute:
-		s.PC += 3
+		State.PC += 3
 		*cycles += 4
 	case AmAbsoluteX:
-		s.PC += 3
+		State.PC += 3
 		*cycles += 5
 	case AmAbsoluteY:
-		s.PC += 3
+		State.PC += 3
 		*cycles += 5
 	case AmIndirect:
-		s.PC += 2
+		State.PC += 2
 		*cycles += 6
 	case AmIndirectX:
-		s.PC += 2
+		State.PC += 2
 		*cycles += 6
 	case AmIndirectY:
-		s.PC += 2
+		State.PC += 2
 		*cycles += 6
 	default:
 		panic(fmt.Sprintf("Unknown address mode %d in store()", addressMode))
@@ -394,56 +392,56 @@ func advanceCyclesForAcculumatorOperation(cycles *int, addressMode byte, pageBou
 	}
 }
 
-func load(s *State, cycles *int, addressMode byte) uint8 {
-	value, pageBoundaryCrossed := readMemoryWithAddressMode(s, addressMode)
-	s.setN(value)
-	s.setZ(value)
+func load(cycles *int, addressMode byte) uint8 {
+	value, pageBoundaryCrossed := readMemoryWithAddressMode(addressMode)
+	setN(value)
+	setZ(value)
 	advanceCyclesForAcculumatorOperation(cycles, addressMode, pageBoundaryCrossed)
 	return value
 }
 
-func cmp(s *State, cycles *int, regValue uint8, addressMode byte) {
-	value, pageBoundaryCrossed := readMemoryWithAddressMode(s, addressMode)
+func cmp(cycles *int, regValue uint8, addressMode byte) {
+	value, pageBoundaryCrossed := readMemoryWithAddressMode(addressMode)
 	var result uint16
 	result = uint16(regValue) - uint16(value)
-	s.setC(result < 0x100)
-	s.setN(uint8(result))
-	s.setZ(uint8(result & 0xff))
+	setC(result < 0x100)
+	setN(uint8(result))
+	setZ(uint8(result & 0xff))
 	advanceCyclesForAcculumatorOperation(cycles, addressMode, pageBoundaryCrossed)
 }
 
-func ora(s *State, cycles *int, addressMode byte) {
-	value, pageBoundaryCrossed := readMemoryWithAddressMode(s, addressMode)
-	s.A |= value
-	s.setN(s.A)
-	s.setZ(s.A)
+func ora(cycles *int, addressMode byte) {
+	value, pageBoundaryCrossed := readMemoryWithAddressMode(addressMode)
+	State.A |= value
+	setN(State.A)
+	setZ(State.A)
 	advanceCyclesForAcculumatorOperation(cycles, addressMode, pageBoundaryCrossed)
 }
 
-func and(s *State, cycles *int, addressMode byte) {
-	value, pageBoundaryCrossed := readMemoryWithAddressMode(s, addressMode)
-	s.A &= value
-	s.setN(s.A)
-	s.setZ(s.A)
+func and(cycles *int, addressMode byte) {
+	value, pageBoundaryCrossed := readMemoryWithAddressMode(addressMode)
+	State.A &= value
+	setN(State.A)
+	setZ(State.A)
 	advanceCyclesForAcculumatorOperation(cycles, addressMode, pageBoundaryCrossed)
 }
 
-func eor(s *State, cycles *int, addressMode byte) {
-	value, pageBoundaryCrossed := readMemoryWithAddressMode(s, addressMode)
-	s.A ^= value
-	s.setN(s.A)
-	s.setZ(s.A)
+func eor(cycles *int, addressMode byte) {
+	value, pageBoundaryCrossed := readMemoryWithAddressMode(addressMode)
+	State.A ^= value
+	setN(State.A)
+	setZ(State.A)
 	advanceCyclesForAcculumatorOperation(cycles, addressMode, pageBoundaryCrossed)
 }
 
-func adc(s *State, cycles *int, addressMode byte) {
-	value, pageBoundaryCrossed := readMemoryWithAddressMode(s, addressMode)
+func adc(cycles *int, addressMode byte) {
+	value, pageBoundaryCrossed := readMemoryWithAddressMode(addressMode)
 
 	var temp uint16
-	temp = uint16(s.A) + uint16(value)
+	temp = uint16(State.A) + uint16(value)
 
 	var carry uint8
-	if s.isC() {
+	if isC() {
 		carry = 1
 	}
 
@@ -452,41 +450,41 @@ func adc(s *State, cycles *int, addressMode byte) {
 	}
 
 	// This is not valid in decimal mode
-	s.setZ(uint8(temp & 0xff))
+	setZ(uint8(temp & 0xff))
 
-	if s.isD() {
-		if ((s.A & 0xf) + (value & 0xf) + carry) > 9 {
+	if isD() {
+		if ((State.A & 0xf) + (value & 0xf) + carry) > 9 {
 			temp += 6
 		}
 
-		s.setN(uint8(temp))
-		s.setV((((s.A ^ value) & 0x80) == 0) && (((s.A ^ uint8(temp)) & 0x80) != 0))
+		setN(uint8(temp))
+		setV((((State.A ^ value) & 0x80) == 0) && (((State.A ^ uint8(temp)) & 0x80) != 0))
 
 		if temp > 0x99 {
 			temp += 96
 		}
-		s.setC(temp > 0x99)
+		setC(temp > 0x99)
 	} else {
-		s.setN(uint8(temp))
-		s.setV((((s.A ^ value) & 0x80) == 0) && (((s.A ^ uint8(temp)) & 0x80) != 0))
-		s.setC(temp > 0xff)
+		setN(uint8(temp))
+		setV((((State.A ^ value) & 0x80) == 0) && (((State.A ^ uint8(temp)) & 0x80) != 0))
+		setC(temp > 0xff)
 	}
 
-	s.A = uint8(temp & 0xff)
+	State.A = uint8(temp & 0xff)
 
-	s.setN(s.A)
-	s.setZ(s.A)
+	setN(State.A)
+	setZ(State.A)
 	advanceCyclesForAcculumatorOperation(cycles, addressMode, pageBoundaryCrossed)
 }
 
-func sbc(s *State, cycles *int, addressMode byte) {
-	value, pageBoundaryCrossed := readMemoryWithAddressMode(s, addressMode)
+func sbc(cycles *int, addressMode byte) {
+	value, pageBoundaryCrossed := readMemoryWithAddressMode(addressMode)
 
 	var temp uint16
-	temp = uint16(s.A) - uint16(value)
+	temp = uint16(State.A) - uint16(value)
 
 	var carry uint8
-	if s.isC() {
+	if isC() {
 		carry = 0
 	} else {
 		carry = 1
@@ -496,15 +494,15 @@ func sbc(s *State, cycles *int, addressMode byte) {
 		temp--
 	}
 
-	s.setN(uint8(temp))
+	setN(uint8(temp))
 
 	// This is not valid in decimal mode
-	s.setZ(uint8(temp & 0xff))
+	setZ(uint8(temp & 0xff))
 
-	s.setV((((s.A ^ uint8(temp)) & 0x80) != 0) && (((s.A ^ value) & 0x80) != 0))
+	setV((((State.A ^ uint8(temp)) & 0x80) != 0) && (((State.A ^ value) & 0x80) != 0))
 
-	if s.isD() {
-		if ((int8(s.A) & 0xf) - int8(carry)) < (int8(value) & 0xf) {
+	if isD() {
+		if ((int8(State.A) & 0xf) - int8(carry)) < (int8(value) & 0xf) {
 			temp -= 6
 		}
 
@@ -513,112 +511,112 @@ func sbc(s *State, cycles *int, addressMode byte) {
 		}
 	}
 
-	s.setC(temp < 0x100)
-	s.A = uint8(temp & 0xff)
+	setC(temp < 0x100)
+	State.A = uint8(temp & 0xff)
 	advanceCyclesForAcculumatorOperation(cycles, addressMode, pageBoundaryCrossed)
 }
 
-func bit(s *State, address uint16) {
-	value := readMemory(s, address)
-	s.setN(value)
-	s.setV((value & 0x40) != 0)
-	s.setZ(value & s.A)
+func bit(address uint16) {
+	value := readMemory(address)
+	setN(value)
+	setV((value & 0x40) != 0)
+	setZ(value & State.A)
 }
 
 // Read the address/value for an ASL, LSR, ROR, ROL
-func preProcessShift(s *State, cycles *int, addressMode byte) (address uint16, value uint8) {
+func preProcessShift(cycles *int, addressMode byte) (address uint16, value uint8) {
 	if addressMode == AmAccumulator {
-		value = s.A
+		value = State.A
 	} else {
-		address, _ = getAddressFromAddressMode(s, addressMode)
-		value = readMemory(s, address)
+		address, _ = getAddressFromAddressMode(addressMode)
+		value = readMemory(address)
 	}
 
 	if addressMode == AmAccumulator {
-		value = s.A
+		value = State.A
 	} else {
-		address, _ = getAddressFromAddressMode(s, addressMode)
-		value = readMemory(s, address)
+		address, _ = getAddressFromAddressMode(addressMode)
+		value = readMemory(address)
 	}
 
 	return
 }
 
 // Store the result of a ASL, LSR, ROR, ROL and advance PC and cycles
-func postProcessShift(s *State, cycles *int, addressMode byte, address uint16, value uint8) {
+func postProcessShift(cycles *int, addressMode byte, address uint16, value uint8) {
 	switch addressMode {
 	case AmAccumulator:
-		s.A = value
-		s.PC += 1
+		State.A = value
+		State.PC += 1
 		*cycles += 2
 	case AmZeroPage:
-		writeMemory(s, address, value)
-		s.PC += 2
+		writeMemory(address, value)
+		State.PC += 2
 		*cycles += 5
 	case AmZeroPageX:
-		writeMemory(s, address, value)
-		s.PC += 2
+		writeMemory(address, value)
+		State.PC += 2
 		*cycles += 6
 	case AmAbsolute:
-		writeMemory(s, address, value)
-		s.PC += 3
+		writeMemory(address, value)
+		State.PC += 3
 		*cycles += 6
 	case AmAbsoluteX:
-		writeMemory(s, address, value)
-		s.PC += 3
+		writeMemory(address, value)
+		State.PC += 3
 		*cycles += 7
 	default:
 		panic(fmt.Sprintf("Unknown address mode %d in postProcessShift()", addressMode))
 	}
 }
 
-func postProcessIncDec(s *State, cycles *int, addressMode byte) {
+func postProcessIncDec(cycles *int, addressMode byte) {
 	switch addressMode {
 	case AmZeroPage:
-		s.PC += 2
+		State.PC += 2
 		*cycles += 5
 	case AmZeroPageX:
-		s.PC += 2
+		State.PC += 2
 		*cycles += 6
 	case AmAbsolute:
-		s.PC += 3
+		State.PC += 3
 		*cycles += 6
 	case AmAbsoluteX:
-		s.PC += 3
+		State.PC += 3
 		*cycles += 7
 	default:
 		panic(fmt.Sprintf("Unknown address mode %d in INC", addressMode))
 	}
 }
 
-func brk(s *State, cycles *int) {
-	push16(s, s.PC+2)
-	s.P |= CpuFlagB
-	push8(s, s.P)
-	s.P |= CpuFlagI
-	s.PC = uint16(readMemory(s, 0xffff))<<8 + uint16(readMemory(s, 0xfffe))
+func brk(cycles *int) {
+	push16(State.PC + 2)
+	State.P |= CpuFlagB
+	push8(State.P)
+	State.P |= CpuFlagI
+	State.PC = uint16(readMemory(0xffff))<<8 + uint16(readMemory(0xfffe))
 	*cycles += 7
 }
 
-func irq(s *State, cycles *int) {
-	push16(s, s.PC)
-	s.P &= ^CpuFlagB
-	push8(s, s.P)
-	s.P |= CpuFlagI
-	s.PC = uint16(readMemory(s, 0xffff))<<8 + uint16(readMemory(s, 0xfffe))
+func irq(cycles *int) {
+	push16(State.PC)
+	State.P &= ^CpuFlagB
+	push8(State.P)
+	State.P |= CpuFlagI
+	State.PC = uint16(readMemory(0xffff))<<8 + uint16(readMemory(0xfffe))
 	*cycles += 7
 }
 
-func nmi(s *State, cycles *int) {
-	push16(s, s.PC)
-	s.P &= ^CpuFlagB
-	push8(s, s.P)
-	s.P |= CpuFlagI
-	s.PC = uint16(readMemory(s, 0xfffb))<<8 + uint16(readMemory(s, 0xfffa))
+func nmi(cycles *int) {
+	push16(State.PC)
+	State.P &= ^CpuFlagB
+	push8(State.P)
+	State.P |= CpuFlagI
+	State.PC = uint16(readMemory(0xfffb))<<8 + uint16(readMemory(0xfffa))
 	*cycles += 7
 }
 
-func Run(s *State, showInstructions bool, breakAddress *uint16, disableBell bool, wantedCycles int) {
+func Run(showInstructions bool, breakAddress *uint16, disableBell bool, wantedCycles int) {
 	cycles := 0
 
 	for {
@@ -626,36 +624,36 @@ func Run(s *State, showInstructions bool, breakAddress *uint16, disableBell bool
 			return
 		}
 
-		if RunningTests && (s.PC == 0x3869) {
+		if RunningTests && (State.PC == 0x3869) {
 			fmt.Println("Functional tests passed")
 			return
 		}
 
-		if RunningTests && (s.PC == 0x0af5) {
+		if RunningTests && (State.PC == 0x0af5) {
 			fmt.Println("Interrupt tests passed")
 			return
 		}
 
-		if s.pendingInterrupt && ((s.P & CpuFlagI) == 0) {
-			irq(s, &cycles)
-			s.pendingInterrupt = false
+		if State.pendingInterrupt && ((State.P & CpuFlagI) == 0) {
+			irq(&cycles)
+			State.pendingInterrupt = false
 			continue
 		}
 
-		if s.pendingNMI {
-			nmi(s, &cycles)
-			s.pendingNMI = false
+		if State.pendingNMI {
+			nmi(&cycles)
+			State.pendingNMI = false
 			continue
 		}
 
 		if showInstructions {
-			PrintInstruction(s)
+			PrintInstruction()
 		}
 
-		opcode := readMemory(s, s.PC)
+		opcode := readMemory(State.PC)
 		addressMode := OpCodes[opcode].AddressingMode.Mode
 
-		if breakAddress != nil && s.PC == *breakAddress {
+		if breakAddress != nil && State.PC == *breakAddress {
 			fmt.Printf("Break at $%04x\n", *breakAddress)
 			os.Exit(0)
 		}
@@ -663,274 +661,274 @@ func Run(s *State, showInstructions bool, breakAddress *uint16, disableBell bool
 		switch opcode {
 
 		case 0x4c: // JMP $0000
-			value := uint16(readMemory(s, s.PC+1)) + uint16(readMemory(s, s.PC+2))<<8
-			if RunningTests && s.PC == value {
+			value := uint16(readMemory(State.PC+1)) + uint16(readMemory(State.PC+2))<<8
+			if RunningTests && State.PC == value {
 				fmt.Printf("Trap at $%04x\n", value)
 				os.Exit(0)
 			}
-			s.PC = value
+			State.PC = value
 			cycles += 3
 		case 0x6c: // JMP ($0000)
-			value := uint16(readMemory(s, s.PC+1)) + uint16(readMemory(s, s.PC+2))<<8
-			s.PC = uint16(readMemory(s, value)) + uint16(readMemory(s, value+1))<<8
+			value := uint16(readMemory(State.PC+1)) + uint16(readMemory(State.PC+2))<<8
+			State.PC = uint16(readMemory(value)) + uint16(readMemory(value+1))<<8
 			cycles += 5
 
 		case 0x20: // JSR $0000
-			value := uint16(readMemory(s, s.PC+1)) + uint16(readMemory(s, s.PC+2))<<8
+			value := uint16(readMemory(State.PC+1)) + uint16(readMemory(State.PC+2))<<8
 			cycles += 6
 
 			if disableBell && value == 0xfca8 {
-				s.PC += 3
+				State.PC += 3
 				continue
 			}
 
-			push16(s, s.PC+2)
-			s.PC = value
+			push16(State.PC + 2)
+			State.PC = value
 
 		case 0x60: // RTS
-			value := pop16(s)
-			s.PC = value + 1
+			value := pop16()
+			State.PC = value + 1
 			cycles += 6
 
 		case 0xa9, 0xa5, 0xb5, 0xad, 0xbd, 0xb9, 0xa1, 0xb1: // LDA
-			s.A = load(s, &cycles, addressMode)
+			State.A = load(&cycles, addressMode)
 		case 0xa2, 0xa6, 0xb6, 0xae, 0xbe: // LDX
-			s.X = load(s, &cycles, addressMode)
+			State.X = load(&cycles, addressMode)
 		case 0xa0, 0xa4, 0xb4, 0xac, 0xbc: // LDY
-			s.Y = load(s, &cycles, addressMode)
+			State.Y = load(&cycles, addressMode)
 
 		case 0x85, 0x95, 0x8d, 0x9d, 0x99, 0x81, 0x91: //STA
-			store(s, &cycles, s.A, addressMode)
+			store(&cycles, State.A, addressMode)
 		case 0x86, 0x96, 0x8e: // STX
-			store(s, &cycles, s.X, addressMode)
+			store(&cycles, State.X, addressMode)
 		case 0x84, 0x94, 0x8c: //STY
-			store(s, &cycles, s.Y, addressMode)
+			store(&cycles, State.Y, addressMode)
 
 		case 0xc9, 0xc5, 0xd5, 0xcd, 0xdd, 0xd9, 0xc1, 0xd1: // CMP
-			cmp(s, &cycles, s.A, addressMode)
+			cmp(&cycles, State.A, addressMode)
 		case 0xe0, 0xe4, 0xeC: // CPX
-			cmp(s, &cycles, s.X, addressMode)
+			cmp(&cycles, State.X, addressMode)
 		case 0xc0, 0xc4, 0xcc: // CPY
-			cmp(s, &cycles, s.Y, addressMode)
+			cmp(&cycles, State.Y, addressMode)
 		case 0x09, 0x05, 0x15, 0x0d, 0x1d, 0x19, 0x01, 0x11: // ORA
-			ora(s, &cycles, addressMode)
+			ora(&cycles, addressMode)
 		case 0x29, 0x25, 0x35, 0x2d, 0x3d, 0x39, 0x21, 0x31: // AND
-			and(s, &cycles, addressMode)
+			and(&cycles, addressMode)
 		case 0x49, 0x45, 0x55, 0x4d, 0x5d, 0x59, 0x41, 0x51: // EOR
-			eor(s, &cycles, addressMode)
+			eor(&cycles, addressMode)
 		case 0x69, 0x65, 0x75, 0x6d, 0x7d, 0x79, 0x61, 0x71: // ADC
-			adc(s, &cycles, addressMode)
+			adc(&cycles, addressMode)
 		case 0xe9, 0xe5, 0xf5, 0xed, 0xfd, 0xf9, 0xe1, 0xf1: // SBC
-			sbc(s, &cycles, addressMode)
+			sbc(&cycles, addressMode)
 
 		// Register transfers
 		case 0xaa: // TAX
-			s.X = s.A
-			s.setN(s.X)
-			s.setZ(s.X)
-			s.PC++
+			State.X = State.A
+			setN(State.X)
+			setZ(State.X)
+			State.PC++
 			cycles += 2
 		case 0xa8: // TAY
-			s.Y = s.A
-			s.setN(s.Y)
-			s.setZ(s.Y)
-			s.PC++
+			State.Y = State.A
+			setN(State.Y)
+			setZ(State.Y)
+			State.PC++
 			cycles += 2
 		case 0xba: // TSX
-			s.X = s.SP
-			s.setN(s.X)
-			s.setZ(s.X)
-			s.PC++
+			State.X = State.SP
+			setN(State.X)
+			setZ(State.X)
+			State.PC++
 			cycles += 2
 		case 0x8a: // TXA
-			s.A = s.X
-			s.setN(s.A)
-			s.setZ(s.A)
-			s.PC++
+			State.A = State.X
+			setN(State.A)
+			setZ(State.A)
+			State.PC++
 			cycles += 2
 		case 0x9a: // TXS
-			s.SP = s.X
-			s.PC++
+			State.SP = State.X
+			State.PC++
 			cycles += 2
 		case 0x98: // TYA
-			s.A = s.Y
-			s.setN(s.A)
-			s.setZ(s.A)
-			s.PC++
+			State.A = State.Y
+			setN(State.A)
+			setZ(State.A)
+			State.PC++
 			cycles += 2
 
 		case 0xE8:
-			s.X = (s.X + 1) & 0xff
-			s.setN(s.X)
-			s.setZ(s.X)
-			s.PC++
+			State.X = (State.X + 1) & 0xff
+			setN(State.X)
+			setZ(State.X)
+			State.PC++
 			cycles += 2
 		case 0xC8:
-			s.Y = (s.Y + 1) & 0xff
-			s.setN(s.Y)
-			s.setZ(s.Y)
-			s.PC++
+			State.Y = (State.Y + 1) & 0xff
+			setN(State.Y)
+			setZ(State.Y)
+			State.PC++
 			cycles += 2
 		case 0xca:
-			s.X = (s.X - 1) & 0xff
-			s.setN(s.X)
-			s.setZ(s.X)
-			s.PC++
+			State.X = (State.X - 1) & 0xff
+			setN(State.X)
+			setZ(State.X)
+			State.PC++
 			cycles += 2
 		case 0x88:
-			s.Y = (s.Y - 1) & 0xff
-			s.setN(s.Y)
-			s.setZ(s.Y)
-			s.PC++
+			State.Y = (State.Y - 1) & 0xff
+			setN(State.Y)
+			setZ(State.Y)
+			State.PC++
 			cycles += 2
 
 		// Branch instructions
 		case 0x10:
-			branch(s, &cycles, "BPL", !s.isN())
+			branch(&cycles, "BPL", !isN())
 		case 0x30:
-			branch(s, &cycles, "BMI", s.isN())
+			branch(&cycles, "BMI", isN())
 		case 0x50:
-			branch(s, &cycles, "BVC", !s.isV())
+			branch(&cycles, "BVC", !isV())
 		case 0x70:
-			branch(s, &cycles, "BVS", s.isV())
+			branch(&cycles, "BVS", isV())
 		case 0x90:
-			branch(s, &cycles, "BCC", !s.isC())
+			branch(&cycles, "BCC", !isC())
 		case 0xb0:
-			branch(s, &cycles, "BCS", s.isC())
+			branch(&cycles, "BCS", isC())
 		case 0xd0:
-			branch(s, &cycles, "BNE", !s.isZ())
+			branch(&cycles, "BNE", !isZ())
 		case 0xf0:
-			branch(s, &cycles, "BEQ", s.isZ())
+			branch(&cycles, "BEQ", isZ())
 
 		// Flag setting
 		case 0x18:
-			s.setC(false)
-			s.PC++
+			setC(false)
+			State.PC++
 			cycles += 2
 		case 0x38:
-			s.setC(true)
-			s.PC++
+			setC(true)
+			State.PC++
 			cycles += 2
 		case 0x58:
-			s.P &= ^CpuFlagI
-			s.PC++
+			State.P &= ^CpuFlagI
+			State.PC++
 			cycles += 2
 		case 0x78:
-			s.P |= CpuFlagI
-			s.PC++
+			State.P |= CpuFlagI
+			State.PC++
 			cycles += 2
 		case 0xb8:
-			s.P &= ^CpuFlagV
-			s.PC++
+			State.P &= ^CpuFlagV
+			State.PC++
 			cycles += 2
 		case 0xd8:
-			s.P &= ^CpuFlagD
-			s.PC++
+			State.P &= ^CpuFlagD
+			State.PC++
 			cycles += 2
 		case 0xf8:
-			s.P |= CpuFlagD
-			s.PC++
+			State.P |= CpuFlagD
+			State.PC++
 			cycles += 2
 
 		case 0x48: // PHA
-			push8(s, s.A)
-			s.PC++
+			push8(State.A)
+			State.PC++
 			cycles += 3
 		case 0x68: // PLA
-			s.A = pop8(s)
-			s.setN(s.A)
-			s.setZ(s.A)
-			s.PC++
+			State.A = pop8()
+			setN(State.A)
+			setZ(State.A)
+			State.PC++
 			cycles += 4
 		case 0x08: // PHP
 			// From http://visual6502.org/wiki/index.php?title=6502_BRK_and_B_bit#the_B_flag_and_the_various_mechanisms
 			// software instructions BRK & PHP will push the B flag as being 1.
-			push8(s, s.P|CpuFlagB)
-			s.PC++
+			push8(State.P | CpuFlagB)
+			State.PC++
 			cycles += 3
 		case 0x28: // PLP
 			// CpuFlagR is always supposed to be 1
-			s.P = pop8(s) | CpuFlagR
-			s.PC++
+			State.P = pop8() | CpuFlagR
+			State.PC++
 			cycles += 4
 		case 0xea:
-			s.PC++
+			State.PC++
 			cycles += 2
 
 		case 0x00: // BRK
-			brk(s, &cycles)
+			brk(&cycles)
 		case 0x40: // RTI
-			s.P = pop8(s) | CpuFlagR
-			value := pop16(s)
-			s.PC = value
+			State.P = pop8() | CpuFlagR
+			value := pop16()
+			State.PC = value
 			cycles += 6
 
 		case 0x24: // BIT $00
-			address := readMemory(s, s.PC+1)
-			bit(s, uint16(address))
-			s.PC += 2
+			address := readMemory(State.PC + 1)
+			bit(uint16(address))
+			State.PC += 2
 			cycles += 3
 		case 0x2C: // BIT $0000
-			address := uint16(readMemory(s, s.PC+1)) + uint16(readMemory(s, s.PC+2))<<8
-			bit(s, address)
-			s.PC += 3
+			address := uint16(readMemory(State.PC+1)) + uint16(readMemory(State.PC+2))<<8
+			bit(address)
+			State.PC += 3
 			cycles += 4
 
 		case 0x0a, 0x06, 0x16, 0x0e, 0x1e: // ASL
-			address, value := preProcessShift(s, &cycles, addressMode)
-			s.setC((value & 0x80) != 0)
+			address, value := preProcessShift(&cycles, addressMode)
+			setC((value & 0x80) != 0)
 			value = (value << 1) & 0xff
-			s.setZ(value)
-			s.setN(value)
-			postProcessShift(s, &cycles, addressMode, address, value)
+			setZ(value)
+			setN(value)
+			postProcessShift(&cycles, addressMode, address, value)
 		case 0x4a, 0x46, 0x56, 0x4e, 0x5e: // LSR
-			address, value := preProcessShift(s, &cycles, addressMode)
-			s.setC((value & 0x01) != 0)
+			address, value := preProcessShift(&cycles, addressMode)
+			setC((value & 0x01) != 0)
 			value >>= 1
-			s.setZ(value)
-			s.setN(value)
-			postProcessShift(s, &cycles, addressMode, address, value)
+			setZ(value)
+			setN(value)
+			postProcessShift(&cycles, addressMode, address, value)
 		case 0x2a, 0x26, 0x36, 0x2e, 0x3e: // ROL
-			address, value := preProcessShift(s, &cycles, addressMode)
+			address, value := preProcessShift(&cycles, addressMode)
 			value16 := uint16(value)
 			value16 <<= 1
-			if (s.P & CpuFlagC) != 0 {
+			if (State.P & CpuFlagC) != 0 {
 				value16 |= 0x01
 			}
-			s.setC((value16 & 0x100) != 0)
+			setC((value16 & 0x100) != 0)
 			value = uint8(value16 & 0xff)
-			s.setZ(value)
-			s.setN(value)
-			postProcessShift(s, &cycles, addressMode, address, value)
+			setZ(value)
+			setN(value)
+			postProcessShift(&cycles, addressMode, address, value)
 		case 0x6a, 0x66, 0x76, 0x6e, 0x7e: // ROR
-			address, value := preProcessShift(s, &cycles, addressMode)
+			address, value := preProcessShift(&cycles, addressMode)
 			value16 := uint16(value)
-			if (s.P & CpuFlagC) != 0 {
+			if (State.P & CpuFlagC) != 0 {
 				value16 |= 0x100
 			}
-			s.setC((value16 & 0x01) != 0)
+			setC((value16 & 0x01) != 0)
 			value = uint8(value16 >> 1)
-			s.setZ(value)
-			s.setN(value)
-			postProcessShift(s, &cycles, addressMode, address, value)
+			setZ(value)
+			setN(value)
+			postProcessShift(&cycles, addressMode, address, value)
 
 		case 0xe6, 0xf6, 0xee, 0xfe: // INC
-			address, _ := getAddressFromAddressMode(s, addressMode)
-			value := readMemory(s, address)
+			address, _ := getAddressFromAddressMode(addressMode)
+			value := readMemory(address)
 			value = (value + 1) & 0xff
-			s.setZ(value)
-			s.setN(value)
-			writeMemory(s, address, value)
-			postProcessIncDec(s, &cycles, addressMode)
+			setZ(value)
+			setN(value)
+			writeMemory(address, value)
+			postProcessIncDec(&cycles, addressMode)
 
 		case 0xc6, 0xd6, 0xce, 0xde: // DEC
-			address, _ := getAddressFromAddressMode(s, addressMode)
-			value := readMemory(s, address)
+			address, _ := getAddressFromAddressMode(addressMode)
+			value := readMemory(address)
 			value = (value - 1) & 0xff
-			s.setZ(value)
-			s.setN(value)
-			writeMemory(s, address, value)
-			postProcessIncDec(s, &cycles, addressMode)
+			setZ(value)
+			setN(value)
+			writeMemory(address, value)
+			postProcessIncDec(&cycles, addressMode)
 
 		default:
 			fmt.Printf("Unknown opcode $%02x\n", opcode)

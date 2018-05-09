@@ -6,7 +6,6 @@ import (
 )
 
 const RomPath = "apple2e.rom"
-
 const StackPage = 1
 
 // https://mirrors.apple2.org.za/apple.cabi.net/Languages.Programming/MemoryMap.IIe.64K.128K.txt
@@ -49,41 +48,36 @@ const (
 
 )
 
-type PhysicalMemory struct {
+var PhysicalMemory struct {
 	MainMemory [0xc000]uint8
 	UpperROM   [0x3000]uint8
 	RomC1      [0x1000]uint8
 	RomC2      [0x1000]uint8
 }
 
-type PageTable [0x100][]uint8
+var PageTable [0x100][]uint8
 
-type Memory struct {
-	PageTable      PageTable
-	PhysicalMemory PhysicalMemory
-}
-
-func MapFirstHalfOfIO(m *Memory) {
+func MapFirstHalfOfIO() {
 	for i := 0x1; i < 0x10; i++ {
-		m.PageTable[i+0xc0] = m.PhysicalMemory.RomC1[i*0x100 : i*0x100+0x100]
+		PageTable[i+0xc0] = PhysicalMemory.RomC1[i*0x100 : i*0x100+0x100]
 	}
 }
 
-func MapSecondHalfOfIO(m *Memory) {
+func MapSecondHalfOfIO() {
 	for i := 0x1; i < 0x10; i++ {
-		m.PageTable[i+0xc0] = m.PhysicalMemory.RomC2[i*0x100 : i*0x100+0x100]
+		PageTable[i+0xc0] = PhysicalMemory.RomC2[i*0x100 : i*0x100+0x100]
 	}
 }
 
 // emptySlot zeroes all RAM for a slot
-func emptySlot(m *Memory, slot int) {
+func emptySlot(slot int) {
 	for i := slot * 0x100; i < (slot+1)*0x100; i++ {
-		m.PhysicalMemory.RomC1[i] = 0
-		m.PhysicalMemory.RomC2[i] = 0
+		PhysicalMemory.RomC1[i] = 0
+		PhysicalMemory.RomC2[i] = 0
 	}
 }
 
-func readApple2eROM(m *Memory) {
+func readApple2eROM() {
 	bytes, err := ioutil.ReadFile(RomPath)
 	if err != nil {
 		panic(fmt.Sprintf("Unable to read ROM: %s", err))
@@ -91,40 +85,38 @@ func readApple2eROM(m *Memory) {
 
 	// Copy both I/O areas over c000-cfff, including unused c000-c0ff
 	for i := 0x0000; i < 0x1000; i++ {
-		m.PhysicalMemory.RomC1[i] = bytes[i]
-		m.PhysicalMemory.RomC2[i] = bytes[i+0x4000]
+		PhysicalMemory.RomC1[i] = bytes[i]
+		PhysicalMemory.RomC2[i] = bytes[i+0x4000]
 	}
 
 	// Copy ROM over for 0xd000-0xffff area
 	for i := 0x0; i < 0x3000; i++ {
-		m.PhysicalMemory.UpperROM[i] = bytes[i+0x1000]
+		PhysicalMemory.UpperROM[i] = bytes[i+0x1000]
 	}
 
 	// Empty slots that aren't yet implemented
-	emptySlot(m, 3)
-	emptySlot(m, 4)
-	emptySlot(m, 6)
-	emptySlot(m, 7)
+	emptySlot(3)
+	emptySlot(4)
+	emptySlot(6)
+	emptySlot(7)
 }
 
-func InitApple2eROM(m *Memory) {
-	readApple2eROM(m)
+func InitApple2eROM() {
+	readApple2eROM()
 
 	// Map 0xc100-0xcfff
-	MapFirstHalfOfIO(m)
+	MapFirstHalfOfIO()
 
 	// Map 0xd000-0xffff
 	for i := 0x0; i < 0x30; i++ {
-		m.PageTable[i+0xd0] = m.PhysicalMemory.UpperROM[i*0x100 : i*0x100+0x100]
+		PageTable[i+0xd0] = PhysicalMemory.UpperROM[i*0x100 : i*0x100+0x100]
 	}
 }
 
-func InitRAM() (memory *Memory) {
-	memory = new(Memory)
-
+func InitRAM() {
 	// Map main RAM
 	for i := 0x0; i < 0xc0; i++ {
-		memory.PageTable[i] = memory.PhysicalMemory.MainMemory[i*0x100 : i*0x100+0x100]
+		PageTable[i] = PhysicalMemory.MainMemory[i*0x100 : i*0x100+0x100]
 	}
 
 	return

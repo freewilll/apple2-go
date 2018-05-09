@@ -18,7 +18,8 @@ func main() {
 	flag.Parse()
 
 	cpu.InitDisasm()
-	memory := mmu.InitRAM()
+
+	mmu.InitRAM()
 
 	var Roms = []string{
 		"6502_functional_test.bin.gz",
@@ -36,9 +37,8 @@ func main() {
 
 		fmt.Printf("Running %s\n", rom)
 
-		var s cpu.State
-		s.Init()
-		s.PC = 0x800
+		cpu.Init()
+		cpu.State.PC = 0x800
 		cpu.RunningTests = true
 
 		if i == 0 {
@@ -56,7 +56,7 @@ func main() {
 
 		// Copy main RAM area 0x0000-0xbfff
 		for i := 0; i < 0xc000; i++ {
-			memory.PhysicalMemory.MainMemory[i] = bytes[i]
+			mmu.PhysicalMemory.MainMemory[i] = bytes[i]
 		}
 
 		// Map writable RAM area in 0xc000-0xffff
@@ -65,11 +65,8 @@ func main() {
 			RomPretendingToBeRAM[i] = bytes[0xc000+i]
 		}
 		for i := 0x0; i < 0x40; i++ {
-			memory.PageTable[0xc0+i] = RomPretendingToBeRAM[i*0x100 : i*0x100+0x100]
+			mmu.PageTable[0xc0+i] = RomPretendingToBeRAM[i*0x100 : i*0x100+0x100]
 		}
-
-		s.Memory = memory
-		s.PageTable = &memory.PageTable
 
 		var breakAddress *uint16
 		if *breakAddressString != "" {
@@ -91,7 +88,7 @@ func main() {
 
 		keyboard.Init()
 
-		cpu.Run(&s, *showInstructions, breakAddress, false, 0)
+		cpu.Run(*showInstructions, breakAddress, false, 0)
 		fmt.Printf("Finished running %s\n\n", rom)
 	}
 }
