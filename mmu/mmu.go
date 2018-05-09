@@ -3,52 +3,11 @@ package mmu
 import (
 	"fmt"
 	"io/ioutil"
-	"mos6502go/keyboard"
 	"mos6502go/system"
 )
 
 const RomPath = "apple2e.rom"
 const StackPage = 1
-
-// https://mirrors.apple2.org.za/apple.cabi.net/Languages.Programming/MemoryMap.IIe.64K.128K.txt
-
-const (
-	KEYBOARD = 0xC000 // keyboard data (latched) (RD-only)
-	CLR80COL = 0xC000 // use 80-column memory mapping (WR-only)
-	SET80COL = 0xC001
-	CLRAUXRD = 0xC002 // read from auxilliary 48K
-	SETAUXRD = 0xC003
-	CLRAUXWR = 0xC004 // write to auxilliary 48K
-	SETAUXWR = 0xC005
-	CLRCXROM = 0xC006 // use external slot ROM
-	SETCXROM = 0xC007
-	CLRAUXZP = 0xC008 // use auxilliary ZP, stack, & LC
-	SETAUXZP = 0xC009
-	CLRC3ROM = 0xC00A // use external slot C3 ROM
-	SETC3ROM = 0xC00B
-	CLR80VID = 0xC00C // use 80-column display mode
-	SET80VID = 0xC00D
-	CLRALTCH = 0xC00E // use alternate character set ROM
-	SETALTCH = 0xC00F
-	STROBE   = 0xC010 // strobe (unlatch) keyboard data
-
-	RDLCBNK2 = 0xC011 // reading from LC bank $Dx 2
-	RDLCRAM  = 0xC012 // reading from LC RAM
-	RDRAMRD  = 0xC013 // reading from auxilliary 48K
-	RDRAMWR  = 0xC014 // writing to auxilliary 48K
-	RDCXROM  = 0xC015 // using external slot ROM
-	RDAUXZP  = 0xC016 // using auxilliary ZP, stack, & LC
-	RDC3ROM  = 0xC017 // using external slot C3 ROM
-	RD80COL  = 0xC018 // using 80-column memory mapping
-	RDVBLBAR = 0xC019 // not VBL (VBL signal low)
-	RDTEXT   = 0xC01A // using text mode
-	RDMIXED  = 0xC01B // using mixed mode
-	RDPAGE2  = 0xC01C // using text/graphics page2
-	RDHIRES  = 0xC01D // using Hi-res graphics mode
-	RDALTCH  = 0xC01E // using alternate character set ROM
-	RD80VID  = 0xC01F // using 80-column display mode
-
-)
 
 var PhysicalMemory struct {
 	MainMemory [0xc000]uint8
@@ -59,13 +18,19 @@ var PhysicalMemory struct {
 
 var PageTable [0x100][]uint8
 
+var UsingExternalSlotRom bool
+
 func MapFirstHalfOfIO() {
+	UsingExternalSlotRom = false
+
 	for i := 0x1; i < 0x10; i++ {
 		PageTable[i+0xc0] = PhysicalMemory.RomC1[i*0x100 : i*0x100+0x100]
 	}
 }
 
 func MapSecondHalfOfIO() {
+	UsingExternalSlotRom = true
+
 	for i := 0x1; i < 0x10; i++ {
 		PageTable[i+0xc0] = PhysicalMemory.RomC2[i*0x100 : i*0x100+0x100]
 	}
@@ -121,53 +86,29 @@ func InitRAM() {
 		PageTable[i] = PhysicalMemory.MainMemory[i*0x100 : i*0x100+0x100]
 	}
 
+	UsingExternalSlotRom = true
+
 	return
 }
 
 func ReadMemory(address uint16) uint8 {
 	if (address >= 0xc000) && (address < 0xc100) {
-
-		if (address == KEYBOARD) || (address == STROBE) {
-			keyBoardData, strobe := keyboard.Read()
-			if address == KEYBOARD {
-				return keyBoardData
-			} else {
-				keyboard.ResetStrobe()
-				return strobe
-			}
-		} else if address == RDCXROM {
-			// using external slot ROM not implemented
-			return 0
-		} else if address == RD80VID {
-			// using 80-column display mode not implemented
-			return 0
-		}
-
-		fmt.Printf("TODO read %04x\n", address)
-		return 0
+		return ReadIO(address)
+	} else {
+		return PageTable[address>>8][address&0xff]
 	}
-
-	return PageTable[address>>8][address&0xff]
 }
 
 func WriteMemory(address uint16, value uint8) {
+	if (address >= 0xc000) && (address < 0xc100) {
+		WriteIO(address, value)
+		return
+	}
+
 	if system.RunningInterruptTests && address == 0xbffc {
 		oldValue := ReadMemory(address)
 		system.WriteInterruptTestOpenCollector(address, oldValue, value)
 		PageTable[uint8(address>>8)][uint8(address&0xff)] = value
-		return
-	}
-
-	if address >= 0xc000 {
-		if address == STROBE {
-			keyboard.ResetStrobe()
-		} else if address == CLRCXROM {
-			MapFirstHalfOfIO()
-		} else if address == SETCXROM {
-			MapSecondHalfOfIO()
-		} else {
-			fmt.Printf("TODO write %04x\n", address)
-		}
 		return
 	}
 
