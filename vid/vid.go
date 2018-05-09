@@ -11,7 +11,7 @@ import (
 const (
 	screenSizeFactor = 1     // Factor by which the whole screen is resized
 	textVideoMemory  = 0x400 // Base location of page 1 text video memory
-	flashFrames      = 8     // Number of frames when FLASH mode is toggled
+	flashFrames      = 11    // Number of frames when FLASH mode is toggled
 )
 
 var (
