@@ -18,7 +18,7 @@ func main() {
 	breakAddressString := flag.String("break", "", "Break on address")
 	flag.Parse()
 
-	cpu.InitDisasm()
+	cpu.InitInstructionDecoder()
 
 	mmu.InitRAM()
 

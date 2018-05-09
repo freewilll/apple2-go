@@ -53,7 +53,7 @@ func main() {
 	disableBell = flag.Bool("disable-bell", false, "Disable bell")
 	flag.Parse()
 
-	cpu.InitDisasm()
+	cpu.InitInstructionDecoder()
 	mmu.InitRAM()
 	mmu.InitApple2eROM()
 

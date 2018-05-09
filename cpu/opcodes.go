@@ -309,7 +309,7 @@ func InitOpCodes() {
 	OpCodes[0xFF] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
 }
 
-func InitDisasm() {
+func InitInstructionDecoder() {
 	InitAddressingModes()
 	InitOpCodes()
 }
