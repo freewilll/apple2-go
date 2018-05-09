@@ -39,22 +39,22 @@ type PhysicalMemory struct {
 	RomC2      [0x1000]uint8
 }
 
-type MemoryMap map[uint8][]uint8
+type PageTable [0x100][]uint8
 
 type Memory struct {
-	MemoryMap      MemoryMap
+	PageTable      PageTable
 	PhysicalMemory PhysicalMemory
 }
 
 func MapFirstHalfOfIO(m *Memory) {
 	for i := 0x1; i < 0x10; i++ {
-		m.MemoryMap[uint8(i)+0xc0] = m.PhysicalMemory.RomC1[i*0x100 : i*0x100+0x100]
+		m.PageTable[i+0xc0] = m.PhysicalMemory.RomC1[i*0x100 : i*0x100+0x100]
 	}
 }
 
 func MapSecondHalfOfIO(m *Memory) {
 	for i := 0x1; i < 0x10; i++ {
-		m.MemoryMap[uint8(i)+0xc0] = m.PhysicalMemory.RomC2[i*0x100 : i*0x100+0x100]
+		m.PageTable[i+0xc0] = m.PhysicalMemory.RomC2[i*0x100 : i*0x100+0x100]
 	}
 }
 
@@ -84,17 +84,16 @@ func InitApple2eROM(m *Memory) {
 
 	// Map 0xd000-0xffff
 	for i := 0x0; i < 0x30; i++ {
-		m.MemoryMap[uint8(i)+0xd0] = m.PhysicalMemory.UpperROM[i*0x100 : i*0x100+0x100]
+		m.PageTable[i+0xd0] = m.PhysicalMemory.UpperROM[i*0x100 : i*0x100+0x100]
 	}
 }
 
 func InitRAM() (memory *Memory) {
 	memory = new(Memory)
-	memory.MemoryMap = make(MemoryMap)
 
 	// Map main RAM
 	for i := 0x0; i < 0xc0; i++ {
-		memory.MemoryMap[uint8(i)] = memory.PhysicalMemory.MainMemory[i*0x100 : i*0x100+0x100]
+		memory.PageTable[i] = memory.PhysicalMemory.MainMemory[i*0x100 : i*0x100+0x100]
 	}
 
 	return

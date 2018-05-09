@@ -25,7 +25,7 @@ var (
 
 type State struct {
 	Memory           *mmu.Memory
-	MemoryMap        *mmu.MemoryMap // For easy access, this is a shortcut for Memory.MemoryMap
+	PageTable        *mmu.PageTable // For easy access, this is a shortcut for Memory.PageTable
 	pendingInterrupt bool
 	pendingNMI       bool
 	A                uint8
@@ -103,14 +103,14 @@ func (s *State) isN() bool {
 }
 
 func push8(s *State, value uint8) {
-	(*s.MemoryMap)[mmu.StackPage][s.SP] = value
+	s.PageTable[mmu.StackPage][s.SP] = value
 	s.SP -= 1
 	s.SP &= 0xff
 }
 
 func push16(s *State, value uint16) {
-	(*s.MemoryMap)[mmu.StackPage][s.SP] = uint8(value >> 8)
-	(*s.MemoryMap)[mmu.StackPage][s.SP-1] = uint8(value & 0xff)
+	s.PageTable[mmu.StackPage][s.SP] = uint8(value >> 8)
+	s.PageTable[mmu.StackPage][s.SP-1] = uint8(value & 0xff)
 	s.SP -= 2
 	s.SP &= 0xff
 }
@@ -118,14 +118,14 @@ func push16(s *State, value uint16) {
 func pop8(s *State) uint8 {
 	s.SP += 1
 	s.SP &= 0xff
-	return (*s.MemoryMap)[mmu.StackPage][s.SP]
+	return s.PageTable[mmu.StackPage][s.SP]
 }
 
 func pop16(s *State) uint16 {
 	s.SP += 2
 	s.SP &= 0xff
-	msb := uint16((*s.MemoryMap)[mmu.StackPage][s.SP])
-	lsb := uint16((*s.MemoryMap)[mmu.StackPage][s.SP-1])
+	msb := uint16(s.PageTable[mmu.StackPage][s.SP])
+	lsb := uint16(s.PageTable[mmu.StackPage][s.SP-1])
 	return lsb + msb<<8
 }
 
@@ -135,7 +135,7 @@ func readMemory(s *State, address uint16) uint8 {
 		return 0
 	}
 
-	return (*s.MemoryMap)[uint8(address>>8)][uint8(address&0xff)]
+	return s.PageTable[address>>8][address&0xff]
 }
 
 // Handle a write to a magic test address that triggers an interrupt and/or an NMI
@@ -156,7 +156,7 @@ func writeInterruptTestOpenCollector(s *State, address uint16, value uint8) {
 		s.pendingNMI = NMI
 	}
 
-	(*s.MemoryMap)[uint8(address>>8)][uint8(address&0xff)] = value
+	s.PageTable[address>>8][address&0xff] = value
 }
 
 func writeMemory(s *State, address uint16, value uint8) {
@@ -176,7 +176,7 @@ func writeMemory(s *State, address uint16, value uint8) {
 		return
 	}
 
-	(*s.MemoryMap)[uint8(address>>8)][uint8(address&0xff)] = value
+	s.PageTable[uint8(address>>8)][uint8(address&0xff)] = value
 
 	if RunningFunctionalTests && address == 0x200 {
 		testNumber := readMemory(s, 0x200)

@@ -30,7 +30,7 @@ var disableBell *bool
 
 func update(screen *ebiten.Image) error {
 	cpu.Run(&cpuState, *showInstructions, nil, *disableBell, 1024000/60)
-	return vid.DrawTextScreen(cpuState.MemoryMap, screen, charMap)
+	return vid.DrawTextScreen(cpuState.PageTable, screen, charMap)
 }
 
 func main() {
@@ -43,12 +43,12 @@ func main() {
 	mmu.InitApple2eROM(memory)
 
 	cpuState.Memory = memory
-	cpuState.MemoryMap = &memory.MemoryMap
+	cpuState.PageTable = &memory.PageTable
 	cpuState.Init()
 
 	bootVector := 0xfffc
-	lsb := (*cpuState.MemoryMap)[uint8(bootVector>>8)][uint8(bootVector&0xff)] // TODO move readMemory to mmu
-	msb := (*cpuState.MemoryMap)[uint8((bootVector+1)>>8)][uint8((bootVector+1)&0xff)]
+	lsb := cpuState.PageTable[bootVector>>8][bootVector&0xff] // TODO move readMemory to mmu
+	msb := cpuState.PageTable[(bootVector+1)>>8][(bootVector+1)&0xff]
 	cpuState.PC = uint16(lsb) + uint16(msb)<<8
 
 	var err error

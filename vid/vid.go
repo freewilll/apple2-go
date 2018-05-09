@@ -19,7 +19,7 @@ var (
 	flashOn      bool
 )
 
-func DrawTextScreen(memory *mmu.MemoryMap, screen *ebiten.Image, charMap *ebiten.Image) error {
+func DrawTextScreen(pageTable *mmu.PageTable, screen *ebiten.Image, charMap *ebiten.Image) error {
 	flashCounter--
 	if flashCounter < 0 {
 		flashCounter = flashFrames
@@ -34,7 +34,7 @@ func DrawTextScreen(memory *mmu.MemoryMap, screen *ebiten.Image, charMap *ebiten
 		base := 128*(y%8) + 40*(y/8)
 		for x := 0; x < 40; x++ {
 			offset := textVideoMemory + base + x
-			value := (*memory)[uint8(offset>>8)][uint8(offset&0xff)]
+			value := (*pageTable)[uint8(offset>>8)][uint8(offset&0xff)]
 			inverted := false
 
 			if (value & 0xc0) == 0 {

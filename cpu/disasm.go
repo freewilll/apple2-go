@@ -37,7 +37,7 @@ func printInstruction(s *State, instruction string) {
 }
 
 func PrintInstruction(s *State) {
-	opcodeValue := (*s.MemoryMap)[uint8((s.PC)>>8)][uint8((s.PC)&0xff)]
+	opcodeValue := s.PageTable[(s.PC)>>8][(s.PC)&0xff]
 	opcode := OpCodes[opcodeValue]
 	mnemonic := opcode.Mnemonic
 	size := opcode.AddressingMode.OperandSize
@@ -53,7 +53,7 @@ func PrintInstruction(s *State) {
 	var suffix string
 
 	if opcode.AddressingMode.Mode == AmRelative {
-		value = uint16((*s.MemoryMap)[uint8((s.PC+1)>>8)][uint8((s.PC+1)&0xff)])
+		value = uint16(s.PageTable[(s.PC+1)>>8][(s.PC+1)&0xff])
 		var relativeAddress uint16
 		if (value & 0x80) == 0 {
 			relativeAddress = s.PC + 2 + uint16(value)
@@ -64,12 +64,12 @@ func PrintInstruction(s *State) {
 		suffix = fmt.Sprintf(stringFormat, relativeAddress)
 		opcodes = fmt.Sprintf("%02x %02x    ", opcodeValue, value)
 	} else if size == 1 {
-		value = uint16((*s.MemoryMap)[uint8((s.PC+1)>>8)][uint8((s.PC+1)&0xff)])
+		value = uint16(s.PageTable[(s.PC+1)>>8][(s.PC+1)&0xff])
 		suffix = fmt.Sprintf(stringFormat, value)
 		opcodes = fmt.Sprintf("%02x %02x    ", opcodeValue, value)
 	} else if size == 2 {
-		lsb := (*s.MemoryMap)[uint8((s.PC+1)>>8)][uint8((s.PC+1)&0xff)]
-		msb := (*s.MemoryMap)[uint8((s.PC+2)>>8)][uint8((s.PC+2)&0xff)]
+		lsb := s.PageTable[(s.PC+1)>>8][(s.PC+1)&0xff]
+		msb := s.PageTable[(s.PC+2)>>8][(s.PC+2)&0xff]
 		value = uint16(lsb) + uint16(msb)*0x100
 		suffix = fmt.Sprintf(stringFormat, value)
 		opcodes = fmt.Sprintf("%02x %02x %02x ", opcodeValue, lsb, msb)
@@ -90,7 +90,7 @@ func DumpMemory(s *State, offset uint16) {
 			}
 			fmt.Printf("%04x  ", offset+i)
 		}
-		fmt.Printf(" %02x", (*s.MemoryMap)[uint8((offset+i)>>8)][uint8((offset+i)&0xff)])
+		fmt.Printf(" %02x", s.PageTable[(offset+i)>>8][(offset+i)&0xff])
 	}
 	fmt.Print("\n")
 }

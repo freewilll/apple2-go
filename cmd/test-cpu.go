@@ -64,11 +64,11 @@ func main() {
 			RomPretendingToBeRAM[i] = bytes[0xc000+i]
 		}
 		for i := 0x0; i < 0x40; i++ {
-			memory.MemoryMap[0xc0+uint8(i)] = RomPretendingToBeRAM[i*0x100 : i*0x100+0x100]
+			memory.PageTable[0xc0+i] = RomPretendingToBeRAM[i*0x100 : i*0x100+0x100]
 		}
 
 		s.Memory = memory
-		s.MemoryMap = &memory.MemoryMap
+		s.PageTable = &memory.PageTable
 
 		var breakAddress *uint16
 		if *breakAddressString != "" {
