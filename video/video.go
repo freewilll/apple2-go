@@ -1,4 +1,4 @@
-package vid
+package video
 
 import (
 	"image"
@@ -6,6 +6,7 @@ import (
 	"mos6502go/mmu"
 
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 )
 
 const (
@@ -15,11 +16,21 @@ const (
 )
 
 var (
+	charMap      *ebiten.Image
 	flashCounter int
 	flashOn      bool
 )
 
-func DrawTextScreen(pageTable *mmu.PageTable, screen *ebiten.Image, charMap *ebiten.Image) error {
+func Init() {
+	var err error
+	charMap, _, err = ebitenutil.NewImageFromFile("video/pr-latin1.png", ebiten.FilterNearest)
+	if err != nil {
+		panic(err)
+	}
+
+}
+
+func DrawTextScreen(pageTable *mmu.PageTable, screen *ebiten.Image) error {
 	flashCounter--
 	if flashCounter < 0 {
 		flashCounter = flashFrames

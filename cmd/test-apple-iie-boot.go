@@ -2,27 +2,19 @@ package main
 
 import (
 	"flag"
-	"log"
 
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
 
 	"mos6502go/cpu"
 	"mos6502go/keyboard"
 	"mos6502go/mmu"
-	"mos6502go/vid"
+	"mos6502go/video"
 )
 
 const (
 	screenSizeFactor = 1     // Factor by which the whole screen is resized
 	textVideoMemory  = 0x400 // Base location of page 1 text video memory
 	flashFrames      = 8     // Number of frames when FLASH mode is toggled
-)
-
-var (
-	charMap      *ebiten.Image
-	flashCounter int
-	flashOn      bool
 )
 
 var cpuState cpu.State
@@ -54,7 +46,7 @@ func update(screen *ebiten.Image) error {
 	checkResetKeys()
 
 	cpu.Run(&cpuState, *showInstructions, nil, *disableBell, 1024000/60)
-	return vid.DrawTextScreen(cpuState.PageTable, screen, charMap)
+	return video.DrawTextScreen(cpuState.PageTable, screen)
 }
 
 func main() {
@@ -71,14 +63,9 @@ func main() {
 	cpuState.Init()
 
 	keyboard.Init()
+	video.Init()
 
 	reset()
-
-	var err error
-	charMap, _, err = ebitenutil.NewImageFromFile("./pr-latin1.png", ebiten.FilterNearest)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	ebiten.Run(update, 280*screenSizeFactor, 192*screenSizeFactor, 2, "Apple //e")
 }
