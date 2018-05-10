@@ -14,30 +14,32 @@ func printFlag(p byte, flag uint8, code string) {
 	}
 }
 
-func printInstruction(instruction string) {
-	fmt.Printf("%04x   %-24s A=%02x X=%02x Y=%02x S=%02x P=%02x ",
-		State.PC,
-		instruction,
-		State.A,
-		State.X,
-		State.Y,
-		State.SP,
-		State.P,
-	)
+func printInstruction(instruction string, showRegisters bool) {
+	fmt.Printf("%04x-   %-24s", State.PC, instruction)
 
-	printFlag(State.P, CpuFlagN, "n")
-	printFlag(State.P, CpuFlagV, "v")
-	fmt.Print("-") // CpuFlagR flag that's always 1
-	printFlag(State.P, CpuFlagB, "b")
-	printFlag(State.P, CpuFlagD, "d")
-	printFlag(State.P, CpuFlagI, "i")
-	printFlag(State.P, CpuFlagZ, "z")
-	printFlag(State.P, CpuFlagC, "c")
+	if showRegisters {
+		fmt.Printf("     A=%02x X=%02x Y=%02x S=%02x P=%02x ",
+			State.A,
+			State.X,
+			State.Y,
+			State.SP,
+			State.P,
+		)
+
+		printFlag(State.P, CpuFlagN, "n")
+		printFlag(State.P, CpuFlagV, "v")
+		fmt.Print("-") // CpuFlagR flag that's always 1
+		printFlag(State.P, CpuFlagB, "b")
+		printFlag(State.P, CpuFlagD, "d")
+		printFlag(State.P, CpuFlagI, "i")
+		printFlag(State.P, CpuFlagZ, "z")
+		printFlag(State.P, CpuFlagC, "c")
+	}
 
 	fmt.Println("")
 }
 
-func PrintInstruction() {
+func PrintInstruction(showRegisters bool) {
 	opcodeValue := mmu.PageTable[(State.PC)>>8][(State.PC)&0xff]
 	opcode := OpCodes[opcodeValue]
 	mnemonic := opcode.Mnemonic
@@ -46,7 +48,7 @@ func PrintInstruction() {
 
 	var value uint16
 	if size == 0 {
-		printInstruction(fmt.Sprintf("%02x        %s", opcodeValue, mnemonic))
+		printInstruction(fmt.Sprintf("%02x           %s", opcodeValue, mnemonic), showRegisters)
 		return
 	}
 
@@ -63,20 +65,27 @@ func PrintInstruction() {
 		}
 
 		suffix = fmt.Sprintf(stringFormat, relativeAddress)
-		opcodes = fmt.Sprintf("%02x %02x    ", opcodeValue, value)
+		opcodes = fmt.Sprintf("%02x %02x       ", opcodeValue, value)
 	} else if size == 1 {
 		value = uint16(mmu.PageTable[(State.PC+1)>>8][(State.PC+1)&0xff])
 		suffix = fmt.Sprintf(stringFormat, value)
-		opcodes = fmt.Sprintf("%02x %02x    ", opcodeValue, value)
+		opcodes = fmt.Sprintf("%02x %02x       ", opcodeValue, value)
 	} else if size == 2 {
 		lsb := mmu.PageTable[(State.PC+1)>>8][(State.PC+1)&0xff]
 		msb := mmu.PageTable[(State.PC+2)>>8][(State.PC+2)&0xff]
 		value = uint16(lsb) + uint16(msb)*0x100
 		suffix = fmt.Sprintf(stringFormat, value)
-		opcodes = fmt.Sprintf("%02x %02x %02x ", opcodeValue, lsb, msb)
+		opcodes = fmt.Sprintf("%02x %02x %02x    ", opcodeValue, lsb, msb)
 	}
 
-	printInstruction(fmt.Sprintf("%s %s %s", opcodes, mnemonic, suffix))
+	printInstruction(fmt.Sprintf("%s %s %s", opcodes, mnemonic, suffix), showRegisters)
+}
+
+func AdvanceInstruction() {
+	opcodeValue := mmu.PageTable[(State.PC)>>8][(State.PC)&0xff]
+	opcode := OpCodes[opcodeValue]
+	size := opcode.AddressingMode.OperandSize + 1
+	State.PC += uint16(size)
 }
 
 func DumpMemory(offset uint16) {

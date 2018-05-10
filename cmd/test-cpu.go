@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"flag"
 	"fmt"
 	"mos6502go/cpu"
@@ -17,6 +16,8 @@ func main() {
 	skipTest1 := flag.Bool("skip-interrupt-test", false, "Skip interrupt test")
 	breakAddressString := flag.String("break", "", "Break on address")
 	flag.Parse()
+
+	breakAddress := utils.DecodeCmdLineAddress(breakAddressString)
 
 	cpu.InitInstructionDecoder()
 
@@ -67,24 +68,6 @@ func main() {
 		}
 		for i := 0x0; i < 0x40; i++ {
 			mmu.PageTable[0xc0+i] = RomPretendingToBeRAM[i*0x100 : i*0x100+0x100]
-		}
-
-		var breakAddress *uint16
-		if *breakAddressString != "" {
-			breakAddressValue, err := hex.DecodeString(*breakAddressString)
-			if err != nil {
-				panic(err)
-			}
-
-			var foo uint16
-			if len(breakAddressValue) == 1 {
-				foo = uint16(breakAddressValue[0])
-			} else if len(breakAddressValue) == 2 {
-				foo = uint16(breakAddressValue[0])*uint16(0x100) + uint16(breakAddressValue[1])
-			} else {
-				panic("Invalid break address")
-			}
-			breakAddress = &foo
 		}
 
 		keyboard.Init()

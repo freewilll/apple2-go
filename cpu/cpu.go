@@ -561,7 +561,7 @@ func Run(showInstructions bool, breakAddress *uint16, disableBell bool, wantedCy
 		}
 
 		if showInstructions {
-			PrintInstruction()
+			PrintInstruction(true)
 		}
 
 		opcode := mmu.ReadMemory(State.PC)
