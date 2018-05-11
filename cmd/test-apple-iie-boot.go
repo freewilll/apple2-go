@@ -8,6 +8,7 @@ import (
 	"mos6502go/cpu"
 	"mos6502go/keyboard"
 	"mos6502go/mmu"
+	"mos6502go/utils"
 	"mos6502go/video"
 )
 
@@ -18,8 +19,9 @@ const (
 )
 
 var showInstructions *bool
-var disableBell *bool
+var disableFirmwareWait *bool
 var resetKeysDown bool
+var breakAddress *uint16
 
 func reset() {
 	bootVector := 0xfffc
@@ -44,18 +46,28 @@ func update(screen *ebiten.Image) error {
 	keyboard.Poll()
 	checkResetKeys()
 
-	cpu.Run(*showInstructions, nil, *disableBell, 1024000/60)
+	cpu.Run(*showInstructions, breakAddress, *disableFirmwareWait, 1024000/60)
 	return video.DrawTextScreen(screen)
 }
 
 func main() {
 	showInstructions = flag.Bool("show-instructions", false, "Show instructions code while running")
-	disableBell = flag.Bool("disable-bell", false, "Disable bell")
+	disableFirmwareWait = flag.Bool("disable-wait", false, "Ignore JSRs to firmware wait at $FCA8")
+	breakAddressString := flag.String("break", "", "Break on address")
+	diskImage := flag.String("image", "", "Disk Image")
+
 	flag.Parse()
+
+	breakAddress = utils.DecodeCmdLineAddress(breakAddressString)
 
 	cpu.InitInstructionDecoder()
 	mmu.InitRAM()
 	mmu.InitApple2eROM()
+	mmu.InitIO()
+
+	if *diskImage != "" {
+		mmu.ReadDiskImage(*diskImage)
+	}
 
 	cpu.Init()
 

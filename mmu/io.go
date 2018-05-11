@@ -5,7 +5,9 @@ import (
 	"mos6502go/keyboard"
 )
 
+// Adapted from
 // https://mirrors.apple2.org.za/apple.cabi.net/Languages.Programming/MemoryMap.IIe.64K.128K.txt
+// https://github.com/cmosher01/Apple-II-Platform/blob/master/asminclude/iorom.asm
 
 const (
 	KEYBOARD = 0xC000 // keyboard data (latched) (RD-only)
@@ -66,11 +68,61 @@ const (
 	CLSAPPLE = 0xC062 // closed apple (option) key data
 
 	PDLTRIG = 0xC070 // trigger paddles
+
+	// Slot 6 Drive IO
+	S6CLRDRVP0 = 0xC0E0 // stepper phase 0  (Q0)
+	S6SETDRVP0 = 0xC0E1 //
+	S6CLRDRVP1 = 0xC0E2 // stepper phase 1  (Q1)
+	S6SETDRVP1 = 0xC0E3 //
+	S6CLRDRVP2 = 0xC0E4 // stepper phase 2  (Q2)
+	S6SETDRVP2 = 0xC0E5 //
+	S6CLRDRVP3 = 0xC0E6 // stepper phase 3  (Q3)
+	S6SETDRVP3 = 0xC0E7 //
+	S6MOTOROFF = 0xC0E8 // drive motor      (Q4)
+	S6MOTORON  = 0xC0E9 //
+	S6SELDRV1  = 0xC0EA // drive select     (Q5)
+	S6SELDRV2  = 0xC0EB //
+	S6Q6L      = 0xC0EC // read             (Q6)
+	S6Q6H      = 0xC0ED // WP sense
+	S6Q7L      = 0xC0EE // WP sense/read    (Q7)
+	S6Q7H      = 0xC0EF // write
 )
+
+var DriveState struct {
+	Drive        uint8
+	Spinning     bool
+	Phase        uint8
+	ArmPosition  uint8
+	BytePosition int
+	Q6           bool
+	Q7           bool
+}
+
+func InitIO() {
+	// Empty slots that aren't yet implemented
+	emptySlot(3)
+	emptySlot(4)
+	emptySlot(7)
+
+	// Initialize slot 6 drive
+	DriveState.Drive = 1
+	DriveState.Spinning = false
+	DriveState.Phase = 0
+	DriveState.ArmPosition = 0
+	DriveState.BytePosition = 0
+	DriveState.Q6 = false
+	DriveState.Q7 = false
+
+	InitDiskImage()
+}
+
+func driveIsreadSequencing() bool {
+	return (!DriveState.Q6) && (!DriveState.Q7)
+}
 
 // Handle soft switch addresses where both a read and a write has a side
 // effect and the return value is meaningless
-func readWrite(address uint16) bool {
+func readWrite(address uint16, isRead bool) bool {
 	switch address {
 	case CLRTEXT:
 		panic("CLRTEXT not implemented")
@@ -81,19 +133,73 @@ func readWrite(address uint16) bool {
 	case TXTPAGE2:
 		return true
 		fmt.Println("TXTPAGE2 not implemented")
-		// panic("TXTPAGE2 not implemented")
 		return true
 	case CLRHIRES:
 		return true
 	case SETHIRES:
 		panic("SETIRES not implemented")
+
+		// Drive stepper motor phase change
+	case S6CLRDRVP0, S6SETDRVP0, S6CLRDRVP1, S6SETDRVP1, S6CLRDRVP2, S6SETDRVP2, S6CLRDRVP3, S6SETDRVP3:
+		if ((address - S6CLRDRVP0) % 2) == 1 {
+			// When the magnet coil is energized, move the arm by half a track
+			phase := int8(address-S6CLRDRVP0) / 2
+			change := int8(DriveState.Phase) - phase
+			if change < 0 {
+				change += 4
+			}
+
+			if change == 1 { // Inward
+				if DriveState.ArmPosition > 0 {
+					DriveState.ArmPosition--
+				}
+			} else if change == 3 { // Outward
+				if DriveState.ArmPosition < 79 {
+					DriveState.ArmPosition++
+				}
+			}
+
+			DriveState.Phase = uint8(phase)
+			MakeTrackData(DriveState.ArmPosition)
+		}
+
+		return true
+
+	case S6MOTOROFF:
+		DriveState.Spinning = false
+		return true
+	case S6MOTORON:
+		DriveState.Spinning = true
+		return true
+	case S6SELDRV1:
+		DriveState.Drive = 1
+		return true
+	case S6SELDRV2:
+		DriveState.Drive = 2
+		return true
+	case S6Q6L:
+		if !isRead {
+			DriveState.Q6 = false
+			return true
+		}
+		return false
+	case S6Q6H:
+		DriveState.Q6 = true
+		return true
+	case S6Q7L:
+		DriveState.Q7 = false
+		return true
+	case S6Q7H:
+		DriveState.Q7 = true
+		return true
+
 	default:
 		return false
 	}
 }
 
 func ReadIO(address uint16) uint8 {
-	if readWrite(address) {
+	if readWrite(address, true) {
 		return 0
 	}
 
@@ -136,6 +242,8 @@ func ReadIO(address uint16) uint8 {
 	case SPEAKER:
 		// Speaker not implemented
 		// Not printing anything since this will generate a lot of noise
+	case S6Q6L:
+		return ReadTrackData()
 	default:
 		panic(fmt.Sprintf("TODO read %04x\n", address))
 	}
@@ -144,7 +252,7 @@ func ReadIO(address uint16) uint8 {
 }
 
 func WriteIO(address uint16, value uint8) {
-	if readWrite(address) {
+	if readWrite(address, false) {
 		return
 	}
 

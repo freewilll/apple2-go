@@ -60,12 +60,6 @@ func readApple2eROM() {
 	for i := 0x0; i < 0x3000; i++ {
 		PhysicalMemory.UpperROM[i] = bytes[i+0x1000]
 	}
-
-	// Empty slots that aren't yet implemented
-	emptySlot(3)
-	emptySlot(4)
-	emptySlot(6)
-	emptySlot(7)
 }
 
 func InitApple2eROM() {

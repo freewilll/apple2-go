@@ -530,7 +530,7 @@ func nmi(cycles *int) {
 	*cycles += 7
 }
 
-func Run(showInstructions bool, breakAddress *uint16, disableBell bool, wantedCycles int) {
+func Run(showInstructions bool, breakAddress *uint16, disableFirmwareWait bool, wantedCycles int) {
 	cycles := 0
 
 	for {
@@ -569,6 +569,7 @@ func Run(showInstructions bool, breakAddress *uint16, disableBell bool, wantedCy
 
 		if breakAddress != nil && State.PC == *breakAddress {
 			fmt.Printf("Break at $%04x\n", *breakAddress)
+			PrintInstruction(true)
 			os.Exit(0)
 		}
 
@@ -591,8 +592,9 @@ func Run(showInstructions bool, breakAddress *uint16, disableBell bool, wantedCy
 			value := uint16(mmu.ReadMemory(State.PC+1)) + uint16(mmu.ReadMemory(State.PC+2))<<8
 			cycles += 6
 
-			if disableBell && value == 0xfca8 {
+			if disableFirmwareWait && value == 0xfca8 {
 				State.PC += 3
+				State.A = 0
 				continue
 			}
 
