@@ -11,10 +11,12 @@ var controlMap map[uint8]uint8
 var keyBoardData uint8
 var strobe uint8
 var previousKeysPressed map[uint8]bool
+var capsLock bool
 
 func Init() {
 	keyBoardData = 0
 	strobe = 0
+	capsLock = true
 
 	ebitenAsciiMap = make(map[ebiten.Key]uint8)
 	shiftMap = make(map[uint8]uint8)
@@ -225,22 +227,28 @@ func Poll() {
 	}
 	key := keys[0]
 
-	if ebiten.IsKeyPressed(ebiten.KeyShift) {
-		shiftedKey, present := shiftMap[key]
-		if present {
-			key = shiftedKey
-		}
-	}
+	if ebiten.IsKeyPressed(ebiten.KeyControl) && ebiten.IsKeyPressed(ebiten.KeyAlt) && key == 'c' {
+		capsLock = !capsLock
+	} else {
+		shift := ebiten.IsKeyPressed(ebiten.KeyShift)
+		shift = shift || (capsLock && key >= 'a' && key <= 'z')
 
-	if ebiten.IsKeyPressed(ebiten.KeyControl) {
-		controlKey, present := controlMap[key]
-		if present {
-			key = controlKey
+		if shift {
+			shiftedKey, present := shiftMap[key]
+			if present {
+				key = shiftedKey
+			}
 		}
-	}
 
-	keyBoardData = key | 0x80
-	strobe = keyBoardData
+		if ebiten.IsKeyPressed(ebiten.KeyControl) {
+			controlKey, present := controlMap[key]
+			if present {
+				key = controlKey
+			}
+		}
+		keyBoardData = key | 0x80
+		strobe = keyBoardData
+	}
 
 	return
 }
