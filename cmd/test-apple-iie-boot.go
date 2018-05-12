@@ -55,10 +55,11 @@ func main() {
 	disableFirmwareWait = flag.Bool("disable-wait", false, "Ignore JSRs to firmware wait at $FCA8")
 	breakAddressString := flag.String("break", "", "Break on address")
 	diskImage := flag.String("image", "", "Disk Image")
-
 	flag.Parse()
 
 	breakAddress = utils.DecodeCmdLineAddress(breakAddressString)
+
+	ebiten.SetRunnableInBackground(true)
 
 	cpu.InitInstructionDecoder()
 	mmu.InitRAM()
