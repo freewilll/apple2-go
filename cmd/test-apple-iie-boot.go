@@ -47,7 +47,7 @@ func update(screen *ebiten.Image) error {
 	checkResetKeys()
 
 	cpu.Run(*showInstructions, breakAddress, *disableFirmwareWait, 1024000/60)
-	return video.DrawTextScreen(screen)
+	return video.DrawScreen(screen)
 }
 
 func main() {

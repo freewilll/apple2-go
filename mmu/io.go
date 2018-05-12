@@ -98,6 +98,11 @@ var DriveState struct {
 	Q7           bool
 }
 
+var VideoState struct {
+	TextMode bool
+	Mixed    bool
+}
+
 func InitIO() {
 	// Empty slots that aren't yet implemented
 	emptySlot(3)
@@ -113,6 +118,9 @@ func InitIO() {
 	DriveState.Q6 = false
 	DriveState.Q7 = false
 
+	VideoState.TextMode = true
+	VideoState.Mixed = false
+
 	InitDiskImage()
 }
 
@@ -125,8 +133,16 @@ func driveIsreadSequencing() bool {
 func readWrite(address uint16, isRead bool) bool {
 	switch address {
 	case CLRTEXT:
-		panic("CLRTEXT not implemented")
+		VideoState.TextMode = false
+		return true
 	case SETTEXT:
+		VideoState.TextMode = true
+		return true
+	case CLRMIXED:
+		VideoState.Mixed = false
+		return true
+	case SETMIXED:
+		VideoState.Mixed = true
 		return true
 	case TXTPAGE1:
 		return true
