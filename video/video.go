@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	screenSizeFactor = 1     // Factor by which the whole screen is resized
+	ScreenSizeFactor = 1     // Factor by which the whole screen is resized
 	textVideoMemory  = 0x400 // Base location of page 1 text video memory
 	flashFrames      = 11    // Number of frames when FLASH mode is toggled
 )
@@ -82,8 +82,8 @@ func drawText(screen *ebiten.Image, x int, y int, value uint8, flashOn bool) err
 	}
 
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(screenSizeFactor, screenSizeFactor)
-	op.GeoM.Translate(screenSizeFactor*7*float64(x), screenSizeFactor*8*float64(y))
+	op.GeoM.Scale(ScreenSizeFactor, ScreenSizeFactor)
+	op.GeoM.Translate(ScreenSizeFactor*7*float64(x), ScreenSizeFactor*8*float64(y))
 
 	fontRow := value % 16
 	fontCol := value / 16
@@ -107,8 +107,8 @@ func drawLores(screen *ebiten.Image, x int, y int, value uint8) error {
 
 	for i := 0; i < 2; i++ {
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Scale(screenSizeFactor, screenSizeFactor)
-		op.GeoM.Translate(screenSizeFactor*7*float64(x), screenSizeFactor*8*float64(y)+float64(i)*4)
+		op.GeoM.Scale(ScreenSizeFactor, ScreenSizeFactor)
+		op.GeoM.Translate(ScreenSizeFactor*7*float64(x), ScreenSizeFactor*8*float64(y)+float64(i)*4)
 		if err := screen.DrawImage(loresSquares[values[i]], op); err != nil {
 			return err
 		}
