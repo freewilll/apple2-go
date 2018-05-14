@@ -1,4 +1,4 @@
-package main
+package cpu_test
 
 import (
 	"flag"
@@ -8,9 +8,10 @@ import (
 	"mos6502go/mmu"
 	"mos6502go/system"
 	"mos6502go/utils"
+	"testing"
 )
 
-func main() {
+func TestCPU(t *testing.T) {
 	showInstructions := flag.Bool("show-instructions", false, "Show instructions code while running")
 	skipTest0 := flag.Bool("skip-functional-test", false, "Skip functional test")
 	skipTest1 := flag.Bool("skip-interrupt-test", false, "Skip interrupt test")

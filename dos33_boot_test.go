@@ -1,4 +1,4 @@
-package main_test
+package main
 
 import (
 	"fmt"
@@ -33,11 +33,8 @@ func TestDOS33Boot(t *testing.T) {
 	t0 := time.Now()
 	cpu.Run(showInstructions, &breakAddress, disableFirmwareWait, system.CpuFrequency*1000)
 
-	// audio.ForwardToFrameCycle()
-
 	elapsed := float64(time.Since(t0) / time.Millisecond)
 	fmt.Printf("CPU Cycles:    %d\n", system.FrameCycles)
-	// fmt.Printf("Sound samples: %d\n", len(system.AudioChannel))
 	fmt.Printf("Time elapsed:  %0.2f ms\n", elapsed)
 	fmt.Printf("Speed:         %0.2f cycles/ms\n", float64(system.FrameCycles)/elapsed)
 }
