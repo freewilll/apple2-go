@@ -21,13 +21,6 @@ var resetKeysDown bool
 var fpsKeysDown bool
 var breakAddress *uint16
 
-func reset() {
-	bootVector := 0xfffc
-	lsb := mmu.PageTable[bootVector>>8][bootVector&0xff] // TODO move readMemory to mmu
-	msb := mmu.PageTable[(bootVector+1)>>8][(bootVector+1)&0xff]
-	cpu.State.PC = uint16(lsb) + uint16(msb)<<8
-}
-
 // checkSpecialKeys checks
 // - ctrl-alt-R has been pressed. Releasing the R does a warm reset
 // - ctrl-alt-F has been pressed, toggling FPS display
@@ -36,7 +29,7 @@ func checkSpecialKeys() {
 		resetKeysDown = true
 	} else if ebiten.IsKeyPressed(ebiten.KeyControl) && ebiten.IsKeyPressed(ebiten.KeyAlt) && !ebiten.IsKeyPressed(ebiten.KeyR) && resetKeysDown {
 		resetKeysDown = false
-		reset()
+		cpu.Reset()
 
 	} else {
 		resetKeysDown = false
@@ -97,7 +90,7 @@ func main() {
 	audio.Mute = *mute
 	system.Init()
 
-	reset()
+	cpu.Reset()
 
 	ebiten.Run(update, 280*video.ScreenSizeFactor, 192*video.ScreenSizeFactor, 2, "Apple //e")
 }

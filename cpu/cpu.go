@@ -852,3 +852,10 @@ func Run(showInstructions bool, breakAddress *uint16, disableFirmwareWait bool, 
 		}
 	}
 }
+
+func Reset() {
+	bootVector := 0xfffc
+	lsb := mmu.PageTable[bootVector>>8][bootVector&0xff] // TODO move readMemory to mmu
+	msb := mmu.PageTable[(bootVector+1)>>8][(bootVector+1)&0xff]
+	State.PC = uint16(lsb) + uint16(msb)<<8
+}
