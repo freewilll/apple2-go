@@ -137,7 +137,7 @@ func branch(instructionName string, doBranch bool) {
 			os.Exit(0)
 		}
 
-		samePage := (State.PC & 0xff00) != (relativeAddress & 0xff00)
+		samePage := (State.PC & 0xff00) == (relativeAddress & 0xff00)
 		if samePage {
 			system.FrameCycles += 1
 		} else {
