@@ -1,7 +1,7 @@
 package system
 
 const (
-	CpuFrequency    = 1024000
+	CpuFrequency    = 1023000
 	AudioSampleRate = 44100
 )
 
