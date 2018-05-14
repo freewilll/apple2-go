@@ -717,31 +717,31 @@ func Run(showInstructions bool, breakAddress *uint16, disableFirmwareWait bool, 
 			branch("BEQ", isZ())
 
 		// Flag setting
-		case 0x18:
+		case 0x18: // CLC
 			setC(false)
 			State.PC++
 			system.FrameCycles += 2
-		case 0x38:
+		case 0x38: // SEC
 			setC(true)
 			State.PC++
 			system.FrameCycles += 2
-		case 0x58:
+		case 0x58: // CLI
 			State.P &= ^CpuFlagI
 			State.PC++
 			system.FrameCycles += 2
-		case 0x78:
+		case 0x78: // SEI
 			State.P |= CpuFlagI
 			State.PC++
 			system.FrameCycles += 2
-		case 0xb8:
+		case 0xb8: // CLV
 			State.P &= ^CpuFlagV
 			State.PC++
 			system.FrameCycles += 2
-		case 0xd8:
+		case 0xd8: // CLD
 			State.P &= ^CpuFlagD
 			State.PC++
 			system.FrameCycles += 2
-		case 0xf8:
+		case 0xf8: //SED
 			State.P |= CpuFlagD
 			State.PC++
 			system.FrameCycles += 2
