@@ -86,7 +86,7 @@ func main() {
 
 	keyboard.Init()
 	video.Init()
-	audio.Init()
+	audio.InitEbiten()
 	audio.Mute = *mute
 	system.Init()
 
