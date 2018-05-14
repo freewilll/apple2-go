@@ -1,13 +1,30 @@
 package system
 
-var (
-	PendingInterrupt bool
-	PendingNMI       bool
-
-	RunningTests           bool
-	RunningFunctionalTests bool
-	RunningInterruptTests  bool
+const (
+	CpuFrequency    = 1024000
+	AudioSampleRate = 44100
 )
+
+var (
+	PendingInterrupt        bool
+	PendingNMI              bool
+	RunningTests            bool
+	RunningFunctionalTests  bool
+	RunningInterruptTests   bool
+	Cycles                  uint64
+	FrameCycles             uint64
+	AudioCycles             uint64
+	AudioChannel            chan uint16
+	LastAudioCycles         uint64
+	LastAudioValue          uint16
+	AudioAttenuationCounter uint64
+)
+
+func Init() {
+	Cycles = 0
+	AudioChannel = make(chan uint16, AudioSampleRate*4) // 1 second
+	LastAudioValue = 0x2000
+}
 
 // Handle a write to a magic test address that triggers an interrupt and/or an NMI
 func WriteInterruptTestOpenCollector(address uint16, oldValue uint8, value uint8) {

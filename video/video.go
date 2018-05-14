@@ -1,6 +1,7 @@
 package video
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"mos6502go/mmu"
@@ -20,6 +21,7 @@ var (
 	flashCounter int
 	flashOn      bool
 	loresSquares [16]*ebiten.Image
+	ShowFPS      bool
 )
 
 func Init() {
@@ -57,6 +59,8 @@ func Init() {
 	loresSquares[0x0D].Fill(color.NRGBA{255, 255, 0, alpha})
 	loresSquares[0x0E].Fill(color.NRGBA{68, 255, 153, alpha})
 	loresSquares[0x0F].Fill(color.NRGBA{255, 255, 255, alpha})
+
+	ShowFPS = false
 }
 
 func drawText(screen *ebiten.Image, x int, y int, value uint8, flashOn bool) error {
@@ -145,6 +149,11 @@ func DrawScreen(screen *ebiten.Image) error {
 			}
 
 		}
+	}
+
+	if ShowFPS {
+		msg := fmt.Sprintf(`FPS: %0.2f`, ebiten.CurrentFPS())
+		ebitenutil.DebugPrint(screen, msg)
 	}
 
 	return nil

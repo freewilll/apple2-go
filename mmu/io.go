@@ -2,6 +2,7 @@ package mmu
 
 import (
 	"fmt"
+	"mos6502go/audio"
 	"mos6502go/keyboard"
 )
 
@@ -132,6 +133,9 @@ func driveIsreadSequencing() bool {
 // effect and the return value is meaningless
 func readWrite(address uint16, isRead bool) bool {
 	switch address {
+	case CLR80VID:
+		// 80 column card hasn't been implemented yet
+		return true
 	case CLRTEXT:
 		VideoState.TextMode = false
 		return true
@@ -256,8 +260,7 @@ func ReadIO(address uint16) uint8 {
 		// RDALTCH not implemented
 		return 0x0d
 	case SPEAKER:
-		// Speaker not implemented
-		// Not printing anything since this will generate a lot of noise
+		audio.Click()
 	case S6Q6L:
 		return ReadTrackData()
 	default:
