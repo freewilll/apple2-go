@@ -14,15 +14,15 @@ var (
 	Cycles                  uint64
 	FrameCycles             uint64
 	AudioCycles             uint64
-	AudioChannel            chan uint16
+	AudioChannel            chan int16
+	LastAudioValue          int16
 	LastAudioCycles         uint64
-	LastAudioValue          uint16
 	AudioAttenuationCounter uint64
 )
 
 func Init() {
 	Cycles = 0
-	AudioChannel = make(chan uint16, AudioSampleRate*4) // 1 second
+	AudioChannel = make(chan int16, AudioSampleRate*4) // 1 second
 	LastAudioValue = 0x2000
 }
 

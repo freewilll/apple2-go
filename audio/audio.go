@@ -82,11 +82,11 @@ func Init() {
 
 func Click() {
 	ForwardToFrameCycle()
-	system.AudioAttenuationCounter = 4000
+	system.AudioAttenuationCounter = 400
 	system.LastAudioValue = ^system.LastAudioValue
 }
 
-func attenuate(sample uint16) uint16 {
+func attenuate(sample int16) int16 {
 	if system.AudioAttenuationCounter == 0 {
 		return 0
 	} else {
