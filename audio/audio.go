@@ -60,7 +60,6 @@ func (s *stream) Close() error {
 }
 
 func Init() {
-	system.AudioCycles = 0
 	firstAudio = true
 	Mute = false
 

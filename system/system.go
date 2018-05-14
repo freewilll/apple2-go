@@ -13,7 +13,6 @@ var (
 	RunningInterruptTests   bool
 	Cycles                  uint64
 	FrameCycles             uint64
-	AudioCycles             uint64
 	AudioChannel            chan int16
 	LastAudioValue          int16
 	LastAudioCycles         uint64
