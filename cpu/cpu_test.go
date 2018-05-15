@@ -73,7 +73,7 @@ func TestCPU(t *testing.T) {
 
 		keyboard.Init()
 
-		cpu.Run(*showInstructions, breakAddress, false, 0)
+		cpu.Run(*showInstructions, breakAddress, true, false, 0)
 		fmt.Printf("Finished running %s\n\n", rom)
 	}
 }

@@ -29,9 +29,10 @@ func TestDOS33Boot(t *testing.T) {
 	system.LastAudioCycles = 0
 	showInstructions := false
 	var breakAddress uint16
+	exitAtBreak := true
 	disableFirmwareWait := false
 	t0 := time.Now()
-	cpu.Run(showInstructions, &breakAddress, disableFirmwareWait, system.CpuFrequency*1000)
+	cpu.Run(showInstructions, &breakAddress, exitAtBreak, disableFirmwareWait, system.CpuFrequency*1000)
 
 	elapsed := float64(time.Since(t0) / time.Millisecond)
 	fmt.Printf("CPU Cycles:    %d\n", system.FrameCycles)

@@ -53,7 +53,8 @@ func update(screen *ebiten.Image) error {
 
 	system.FrameCycles = 0
 	system.LastAudioCycles = 0
-	cpu.Run(*showInstructions, breakAddress, *disableFirmwareWait, system.CpuFrequency/60)
+	exitAtBreak := true
+	cpu.Run(*showInstructions, breakAddress, exitAtBreak, *disableFirmwareWait, system.CpuFrequency/60)
 	audio.ForwardToFrameCycle()
 	system.Cycles += system.FrameCycles
 	system.FrameCycles = 0

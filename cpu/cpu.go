@@ -530,7 +530,7 @@ func nmi() {
 	system.FrameCycles += 7
 }
 
-func Run(showInstructions bool, breakAddress *uint16, disableFirmwareWait bool, wantedCycles uint64) {
+func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableFirmwareWait bool, wantedCycles uint64) {
 	system.FrameCycles = 0
 
 	for {
@@ -568,9 +568,13 @@ func Run(showInstructions bool, breakAddress *uint16, disableFirmwareWait bool, 
 		addressMode := OpCodes[opcode].AddressingMode.Mode
 
 		if breakAddress != nil && State.PC == *breakAddress {
-			fmt.Printf("Break at $%04x\n", *breakAddress)
-			PrintInstruction(true)
-			os.Exit(0)
+			if exitAtBreak {
+				fmt.Printf("Break at $%04x\n", *breakAddress)
+				PrintInstruction(true)
+				os.Exit(0)
+			} else {
+				return
+			}
 		}
 
 		switch opcode {
