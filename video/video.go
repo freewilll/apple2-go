@@ -63,7 +63,7 @@ func Init() {
 	ShowFPS = false
 }
 
-func drawText(screen *ebiten.Image, x int, y int, value uint8, flashOn bool) error {
+func drawText(screen *ebiten.Image, x int, y int, value uint8) error {
 	inverted := false
 
 	if (value & 0xc0) == 0 {
@@ -117,10 +117,100 @@ func drawLores(screen *ebiten.Image, x int, y int, value uint8) error {
 	return nil
 }
 
-func DrawScreen(screen *ebiten.Image) error {
+func drawTextBlock(screen *ebiten.Image, start int, end int) error {
+	for y := start; y < end; y++ {
+		base := 128*(y%8) + 40*(y/8)
+		for x := 0; x < 40; x++ {
+			offset := textVideoMemory + base + x
+			value := mmu.PageTable[offset>>8][offset&0xff]
+
+			if err := drawText(screen, x, y, value); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func drawLoresBlock(screen *ebiten.Image, start int, end int) error {
+	for y := start; y < end; y++ {
+		base := 128*(y%8) + 40*(y/8)
+		for x := 0; x < 40; x++ {
+			offset := textVideoMemory + base + x
+			value := mmu.PageTable[offset>>8][offset&0xff]
+			if err := drawLores(screen, x, y, value); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func drawTextOrLoresScreen(screen *ebiten.Image) error {
 	topHalfIsLowRes := !mmu.VideoState.TextMode
 	bottomHalfIsLowRes := !mmu.VideoState.TextMode && !mmu.VideoState.Mixed
 
+	if !topHalfIsLowRes {
+		drawTextBlock(screen, 0, 20)
+	} else {
+		drawLoresBlock(screen, 0, 20)
+	}
+
+	if !bottomHalfIsLowRes {
+		drawTextBlock(screen, 20, 24)
+	} else {
+		drawLoresBlock(screen, 20, 24)
+	}
+
+	return nil
+}
+
+func drawHiresScreen(screen *ebiten.Image) error {
+	// mmu.VideoState.Mixed
+
+	if ScreenSizeFactor != 1 {
+		panic("Hires mode for ScreenSizeFactor != 1 not implemented")
+	}
+
+	pixels := make([]byte, 280*192*4)
+
+	for y := 0; y < 192; y++ {
+		if mmu.VideoState.Mixed && y >= 160 {
+			continue
+		}
+
+		// Woz is a genius
+		yOffset := 0x2000 - (0x3d8)*(y>>6) + 0x80*(y>>3) + 0x400*(y&0x7)
+
+		for x := 0; x < 40; x++ {
+			offset := yOffset + x
+			value := mmu.PageTable[offset>>8][offset&0xff]
+			value &= 0x7f
+
+			for bit := 0; bit < 7; bit++ {
+				b := float64(value & 1)
+				value = value >> 1
+				p := (y*280 + x*7 + bit) * 4
+
+				pixels[p+0] = byte(0xff * float64(0.20) * b)
+				pixels[p+1] = byte(0xff * float64(0.75) * b)
+				pixels[p+2] = byte(0xff * float64(0.20) * b)
+				pixels[p+3] = 0xff
+			}
+		}
+	}
+
+	screen.ReplacePixels(pixels)
+
+	if mmu.VideoState.Mixed {
+		drawTextBlock(screen, 20, 24)
+	}
+	return nil
+}
+
+func DrawScreen(screen *ebiten.Image) error {
 	flashCounter--
 	if flashCounter < 0 {
 		flashCounter = flashFrames
@@ -131,24 +221,10 @@ func DrawScreen(screen *ebiten.Image) error {
 		return nil
 	}
 
-	for y := 0; y < 24; y++ {
-		base := 128*(y%8) + 40*(y/8)
-		for x := 0; x < 40; x++ {
-			offset := textVideoMemory + base + x
-			value := mmu.PageTable[offset>>8][offset&0xff]
-
-			topHalf := y < 20
-			if (topHalf && topHalfIsLowRes) || (!topHalf && bottomHalfIsLowRes) {
-				if err := drawLores(screen, x, y, value); err != nil {
-					return err
-				}
-			} else {
-				if err := drawText(screen, x, y, value, flashOn); err != nil {
-					return err
-				}
-			}
-
-		}
+	if !mmu.VideoState.HiresMode {
+		drawTextOrLoresScreen(screen)
+	} else {
+		drawHiresScreen(screen)
 	}
 
 	if ShowFPS {

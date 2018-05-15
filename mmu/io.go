@@ -100,8 +100,9 @@ var DriveState struct {
 }
 
 var VideoState struct {
-	TextMode bool
-	Mixed    bool
+	TextMode  bool
+	HiresMode bool
+	Mixed     bool
 }
 
 func InitIO() {
@@ -120,6 +121,7 @@ func InitIO() {
 	DriveState.Q7 = false
 
 	VideoState.TextMode = true
+	VideoState.HiresMode = false
 	VideoState.Mixed = false
 
 	InitDiskImage()
@@ -155,9 +157,11 @@ func readWrite(address uint16, isRead bool) bool {
 		fmt.Println("TXTPAGE2 not implemented")
 		return true
 	case CLRHIRES:
+		VideoState.HiresMode = false
 		return true
 	case SETHIRES:
-		panic("SETIRES not implemented")
+		VideoState.HiresMode = true
+		return true
 
 		// Drive stepper motor phase change
 	case S6CLRDRVP0, S6SETDRVP0, S6CLRDRVP1, S6SETDRVP1, S6CLRDRVP2, S6SETDRVP2, S6CLRDRVP3, S6SETDRVP3:
