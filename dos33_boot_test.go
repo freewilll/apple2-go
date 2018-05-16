@@ -28,11 +28,18 @@ func TestDOS33Boot(t *testing.T) {
 	system.FrameCycles = 0
 	system.LastAudioCycles = 0
 	showInstructions := false
-	var breakAddress uint16
-	exitAtBreak := true
 	disableFirmwareWait := false
+
+	// Break at the BASIC interpreter to ensure DOS has started
+	breakAddress := uint16(0xa503)
+	exitAtBreak := false
+
 	t0 := time.Now()
-	cpu.Run(showInstructions, &breakAddress, exitAtBreak, disableFirmwareWait, system.CpuFrequency*1000)
+	cpu.Run(showInstructions, &breakAddress, exitAtBreak, disableFirmwareWait, system.CpuFrequency*7)
+
+	if cpu.State.PC != 0xa503 {
+		t.Fatal("Did not reach BASIC entrypoint")
+	}
 
 	elapsed := float64(time.Since(t0) / time.Millisecond)
 	fmt.Printf("CPU Cycles:    %d\n", system.FrameCycles)
