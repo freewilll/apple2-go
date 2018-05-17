@@ -84,14 +84,14 @@ func main() {
 	}
 
 	cpu.Init()
-
 	keyboard.Init()
 	video.Init()
 	audio.InitEbiten()
 	audio.Mute = *mute
 	system.Init()
-
 	cpu.Reset()
 
 	ebiten.Run(update, 280*video.ScreenSizeFactor, 192*video.ScreenSizeFactor, 2, "Apple //e")
+
+	mmu.FlushImage()
 }

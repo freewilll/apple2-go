@@ -208,8 +208,11 @@ func readWrite(address uint16, isRead bool) bool {
 		}
 		return false
 	case S6Q6H:
-		DriveState.Q6 = true
-		return true
+		if isRead {
+			DriveState.Q6 = true
+			return true
+		}
+		return false
 	case S6Q7L:
 		DriveState.Q7 = false
 		return true
@@ -299,6 +302,8 @@ func WriteIO(address uint16, value uint8) {
 		// CLRC3ROM not implemented
 	case SETC3ROM:
 		// SETC3ROM not implemented
+	case S6Q6H:
+		WriteTrackData(value)
 	default:
 		panic(fmt.Sprintf("TODO write %04x\n", address))
 	}

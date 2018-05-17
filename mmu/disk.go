@@ -22,7 +22,8 @@ const diskSectorBytes = 3 + 8 + 3 + 3 + 0x56 + 0x100 + 1 + 3
 const trackDataBytes = sectorsPerTrack * diskSectorBytes
 
 var dos33SectorInterleaving [16]uint8
-var translateTable62 [0x40]uint8 // Conversion of a 6 bit byte to a 8 bit "disk" byte
+var sixTwoEncoding [0x40]uint8  // Conversion of a 6 bit byte to a 8 bit "disk" byte
+var sixTwoDecoding [0x100]uint8 // Conversion of a 8 bit "disk" byte to a 6 bit byte
 
 type sector struct {
 	data [0x100]uint8
@@ -36,8 +37,39 @@ type disk struct {
 	tracks [tracksPerDisk]track
 }
 
+var imagePath string                // Loaded disk image path
 var image disk                      // A loaded disk image
+var imageIsDirty bool               // If an image has been written to and needs a flush
 var TrackData [trackDataBytes]uint8 // Converted image data as it it returned by the disk controller for a single track
+
+// vars to keep track of writes
+const (
+	WaitingForDataPrologue byte = 1 + iota
+	ReceivingData
+)
+
+const rawDataBufferSize = diskSectorBytes + 16
+
+type AddressField struct {
+	volume uint8
+	track  uint8
+	sector uint8
+}
+
+var lastReadAddress AddressField
+var lastReadSectorDataPosition int
+
+var SectorWriteState struct {
+	State           byte
+	RawData         [rawDataBufferSize]uint8
+	RawDataPosition uint16
+	Address         AddressField
+}
+
+func ResetSectorWriteState() {
+	SectorWriteState.State = WaitingForDataPrologue
+	SectorWriteState.RawDataPosition = 0
+}
 
 func InitDiskImage() {
 	// Map DOS 3.3 sector interleaving
@@ -69,7 +101,7 @@ func InitDiskImage() {
 	}
 
 	// Convert a 6 bit "byte" to a 8 bit "disk" byte
-	translateTable62 = [0x40]uint8{
+	sixTwoEncoding = [0x40]uint8{
 		0x96, 0x97, 0x9a, 0x9b, 0x9d, 0x9e, 0x9f, 0xa6,
 		0xa7, 0xab, 0xac, 0xad, 0xae, 0xaf, 0xb2, 0xb3,
 		0xb4, 0xb5, 0xb6, 0xb7, 0xb9, 0xba, 0xbb, 0xbc,
@@ -79,12 +111,20 @@ func InitDiskImage() {
 		0xed, 0xee, 0xef, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6,
 		0xf7, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff,
 	}
+
+	for i := uint8(0); i < 0x40; i++ {
+		sixTwoDecoding[sixTwoEncoding[i]] = i
+	}
+
+	ResetSectorWriteState()
 }
 
 func ReadDiskImage(path string) {
+	imagePath = path
+
 	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
-		panic(fmt.Sprintf("Unable to read ROM: %s", err))
+		panic(fmt.Sprintf("Unable to read disk image: %s", err))
 	}
 
 	if len(bytes) != imageLength {
@@ -99,6 +139,27 @@ func ReadDiskImage(path string) {
 				pos++
 			}
 		}
+	}
+
+	imageIsDirty = false
+}
+
+func writeDiskImage() {
+	bytes := make([]byte, tracksPerDisk*sectorsPerTrack*0x100)
+
+	pos := 0
+	for t := 0; t < tracksPerDisk; t++ {
+		for s := 0; s < sectorsPerTrack; s++ {
+			for i := 0; i < 0x100; i++ {
+				bytes[pos] = byte(image.tracks[t].sectors[s].data[i])
+				pos++
+			}
+		}
+	}
+
+	err := ioutil.WriteFile(imagePath, bytes, 0644)
+	if err != nil {
+		panic(fmt.Sprintf("Unable to write disk image: %s", err))
 	}
 }
 
@@ -119,8 +180,13 @@ func oddEvenEncode(data uint8) (uint8, uint8) {
 	return l, h
 }
 
+// Merge the two bytes together produce by oddEvenEncode
+func oddEvenDecode(data0 byte, data1 byte) uint8 {
+	return ((data0 << 1) | 1) & data1
+}
+
 // Convert 8 bit bytes to 0x56 2-bit sections and 0x100 6 bit sections
-func makeSectorData(s sector) (data [0x56 + 0x100]uint8) {
+func sectorDataEncode(s sector) (data [0x56 + 0x100]uint8) {
 	twoBitPos := 0x0
 	for i := 0; i < 0x100; i++ {
 		b := s.data[i]
@@ -142,15 +208,92 @@ func makeSectorData(s sector) (data [0x56 + 0x100]uint8) {
 	return
 }
 
+func sectorDataDecode(data []uint8) (sector [0x100]uint8) {
+	for i := 0; i < 0x100; i++ {
+		sector[i] = data[i+0x56]
+	}
+
+	twoBitPos := 0x00
+	for i := 0; i < 0x100; i++ {
+		twoBit := data[twoBitPos]
+		sector[i] = (sector[i] << 2) + ((twoBit & 1) << 1) + ((twoBit & 2) >> 1)
+		data[twoBitPos] >>= 2
+
+		twoBitPos++
+		if twoBitPos == 0x56 {
+			twoBitPos = 0x0
+		}
+	}
+
+	return
+}
+
 func clearTrackData() {
 	for i := 0; i < trackDataBytes; i++ {
 		TrackData[i] = 0
 	}
 }
 
+func makeSectorData(track uint8, physicalSector uint8) {
+	logicalSector := dos33SectorInterleaving[physicalSector]
+	offset := int(physicalSector) * diskSectorBytes
+
+	volume := uint8(254) // Volume numbers aren't implemented
+	checksum := volume ^ track ^ uint8(physicalSector)
+
+	volL, volH := oddEvenEncode(volume)
+	trL, trH := oddEvenEncode(track)
+	seL, seH := oddEvenEncode(uint8(physicalSector))
+	csL, csH := oddEvenEncode(checksum)
+
+	// Address field prologue
+	TrackData[offset+0] = 0xd5
+	TrackData[offset+1] = 0xaa
+	TrackData[offset+2] = 0x96
+
+	// Volume, track, sector and checksum
+	TrackData[offset+3] = volL
+	TrackData[offset+4] = volH
+	TrackData[offset+5] = trL
+	TrackData[offset+6] = trH
+	TrackData[offset+7] = seL
+	TrackData[offset+8] = seH
+	TrackData[offset+9] = csL
+	TrackData[offset+10] = csH
+
+	// Address epilogue
+	TrackData[offset+11] = 0xde
+	TrackData[offset+12] = 0xaa
+	TrackData[offset+13] = 0xeb
+
+	// Data field prologue
+	TrackData[offset+14] = 0xd5
+	TrackData[offset+15] = 0xaa
+	TrackData[offset+16] = 0xad
+
+	sectorData := sectorDataEncode(image.tracks[track].sectors[logicalSector])
+
+	// a is the previous byte's value
+	a := uint8(0)
+	for i := 0; i < 0x56+0x100; i++ {
+		a ^= sectorData[i]
+		b := sixTwoEncoding[a]
+		TrackData[offset+17+i] = b
+		a = sectorData[i]
+	}
+
+	// Set the checksum byte
+	TrackData[offset+17+0x56+0x100] = sixTwoEncoding[a]
+
+	// Data epilogue
+	TrackData[offset+17+0x56+0x100+1] = 0xde
+	TrackData[offset+17+0x56+0x100+2] = 0xaa
+	TrackData[offset+17+0x56+0x100+3] = 0xeb
+}
+
 func MakeTrackData(armPosition uint8) {
 	// Tracks are present on even arm positions.
-	track := armPosition / 2
+	track := uint8(armPosition / 2)
 
 	// If it's an odd arm position or a track beyond the image, zero the data
 	if (armPosition >= (tracksPerDisk * 2)) || ((armPosition % 2) == 1) {
@@ -161,68 +304,33 @@ func MakeTrackData(armPosition uint8) {
 	DriveState.BytePosition = 0 // Point the head at the first sector
 
 	// For each sector, encode the data and add it to TrackData
-	for physicalSector := 0; physicalSector < sectorsPerTrack; physicalSector++ {
-		logicalSector := dos33SectorInterleaving[physicalSector]
-		offset := int(physicalSector) * diskSectorBytes
-
-		volume := uint8(254) // Volume numbers aren't implemented
-		checksum := volume ^ track ^ uint8(physicalSector)
-
-		volL, volH := oddEvenEncode(volume)
-		trL, trH := oddEvenEncode(track)
-		seL, seH := oddEvenEncode(uint8(physicalSector))
-		csL, csH := oddEvenEncode(checksum)
-
-		// Address field prologue
-		TrackData[offset+0] = 0xd5
-		TrackData[offset+1] = 0xaa
-		TrackData[offset+2] = 0x96
-
-		// Volume, track, sector and checksum
-		TrackData[offset+3] = volL
-		TrackData[offset+4] = volH
-		TrackData[offset+5] = trL
-		TrackData[offset+6] = trH
-		TrackData[offset+7] = seL
-		TrackData[offset+8] = seH
-		TrackData[offset+9] = csL
-		TrackData[offset+10] = csH
-
-		// Address epilogue
-		TrackData[offset+11] = 0xde
-		TrackData[offset+12] = 0xaa
-		TrackData[offset+13] = 0xeb
-
-		// Data field prologue
-		TrackData[offset+14] = 0xd5
-		TrackData[offset+15] = 0xaa
-		TrackData[offset+16] = 0xad
-
-		sectorData := makeSectorData(image.tracks[track].sectors[logicalSector])
-
-		// a is the previous byte's value
-		a := uint8(0)
-		for i := 0; i < 0x56+0x100; i++ {
-			a ^= sectorData[i]
-			b := translateTable62[a]
-			TrackData[offset+17+i] = b
-			a = sectorData[i]
-		}
-
-		// Set the checksum byte
-		TrackData[offset+17+0x56+0x100] = translateTable62[a]
-
-		// Data epilogue
-		TrackData[offset+17+0x56+0x100+1] = 0xde
-		TrackData[offset+17+0x56+0x100+2] = 0xaa
-		TrackData[offset+17+0x56+0x100+3] = 0xeb
-
+	for physicalSector := uint8(0); physicalSector < sectorsPerTrack; physicalSector++ {
+		makeSectorData(track, physicalSector)
 	}
+}
+
+func DecodeAddressField(data []uint8) AddressField {
+	var af AddressField
+	af.volume = oddEvenDecode(data[0], data[1])
+	af.track = oddEvenDecode(data[2], data[3])
+	af.sector = oddEvenDecode(data[4], data[5])
+	return af
 }
 
 // Read a byte from the disk head and spin the disk along
 func ReadTrackData() (result uint8) {
 	result = TrackData[DriveState.BytePosition]
+
+	if DriveState.BytePosition >= 9 {
+		if TrackData[DriveState.BytePosition-9] == 0xd5 &&
+			TrackData[DriveState.BytePosition-8] == 0xaa &&
+			TrackData[DriveState.BytePosition-7] == 0x96 {
+			var addressData []uint8
+			addressData = TrackData[DriveState.BytePosition-6 : DriveState.BytePosition]
+			lastReadAddress = DecodeAddressField(addressData)
+			lastReadSectorDataPosition = DriveState.BytePosition + 8
+		}
+	}
 
 	DriveState.BytePosition++
 	if DriveState.BytePosition == trackDataBytes {
@@ -230,4 +338,74 @@ func ReadTrackData() (result uint8) {
 	}
 
 	return
+}
+
+// WriteTrackData gets called whenever a byte is written to the write address.
+// Reads are done at the same time by the OS to await the drive to be in the
+// right position. The last read address determines the track and sector. The expeted sequence of writes are:
+// - up to 5 bytes of 0xff padding (ignored)
+// - data prologue d5 aa ad
+// - 0x56 bytes of 2-bit data
+// - 0x56 bytes of 6-bit data
+// - checksum byte (ignored)
+// - data epilogue (ignored)
+//
+// The sector is decoded and updated in memory once the 0x156 data  bytes have
+// been read. The image is flagged as dirty and flushed on exit.
+func WriteTrackData(value uint8) {
+	if SectorWriteState.State == WaitingForDataPrologue {
+		if SectorWriteState.RawDataPosition >= 16 {
+			ResetSectorWriteState()
+			return
+		}
+
+		SectorWriteState.RawData[SectorWriteState.RawDataPosition] = value
+		SectorWriteState.RawDataPosition += 1
+
+		// Check for address prologue
+		if SectorWriteState.RawDataPosition > 2 && SectorWriteState.RawData[SectorWriteState.RawDataPosition-3] == 0xd5 &&
+			SectorWriteState.RawData[SectorWriteState.RawDataPosition-2] == 0xaa &&
+			SectorWriteState.RawData[SectorWriteState.RawDataPosition-1] == 0xad {
+
+			// We got it, record the last read address field and reset RawDataPosition
+			SectorWriteState.State = ReceivingData
+			SectorWriteState.Address = lastReadAddress
+			SectorWriteState.RawDataPosition = 0
+			return
+		}
+
+	} else if SectorWriteState.State == ReceivingData {
+		SectorWriteState.RawData[SectorWriteState.RawDataPosition] = value
+		SectorWriteState.RawDataPosition += 1
+
+		if SectorWriteState.RawDataPosition == 0x56+0x100 {
+			// We have the full sector data
+			physicalSector := lastReadAddress.sector
+			logicalSector := dos33SectorInterleaving[physicalSector]
+
+			// transform the data from disk bytes to 6-bytes and EOR it
+			a := uint8(0)
+			for i := 0; i < 0x56+0x100; i++ {
+				b := sixTwoDecoding[SectorWriteState.RawData[i]]
+				a ^= b
+				SectorWriteState.RawData[i] = a
+			}
+
+			// Transform the 0x156 bytes into the final 0x100 bytes
+			sectorData := sectorDataDecode(SectorWriteState.RawData[0:0x156])
+
+			// Save the data to memory & recreate the raw sector data
+			image.tracks[lastReadAddress.track].sectors[logicalSector].data = sectorData
+			makeSectorData(lastReadAddress.track, physicalSector)
+
+			ResetSectorWriteState()
+			imageIsDirty = true
+		}
+	}
+}
+
+func FlushImage() {
+	if imageIsDirty {
+		writeDiskImage()
+	}
 }

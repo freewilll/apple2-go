@@ -3,8 +3,12 @@ package utils
 import (
 	"compress/gzip"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
+	"mos6502go/cpu"
+	"mos6502go/system"
 	"os"
+	"testing"
 )
 
 func ReadMemoryFromGzipFile(filename string) (data []byte, err error) {
@@ -43,4 +47,15 @@ func DecodeCmdLineAddress(s *string) (result *uint16) {
 	}
 
 	return result
+}
+
+func RunUntilBreakPoint(t *testing.T, breakAddress uint16, seconds int, showInstructions bool, message string) {
+	fmt.Printf("Running until %#04x: %s \n", breakAddress, message)
+	system.FrameCycles = 0
+	exitAtBreak := false
+	disableFirmwareWait := false
+	cpu.Run(showInstructions, &breakAddress, exitAtBreak, disableFirmwareWait, uint64(system.CpuFrequency*seconds))
+	if cpu.State.PC != breakAddress {
+		t.Fatalf("Did not reach breakpoint at %04x. Got to %04x", breakAddress, cpu.State.PC)
+	}
 }
