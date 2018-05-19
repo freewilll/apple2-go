@@ -12,14 +12,14 @@ import (
 	"time"
 )
 
-const diskImage = "dos33_disk.dsk"
+const dosDiskImage = "dos33.dsk"
 
 func TestDOS33Boot(t *testing.T) {
 	cpu.InitInstructionDecoder()
 	mmu.InitRAM()
 	mmu.InitApple2eROM()
 	mmu.InitIO()
-	mmu.ReadDiskImage(diskImage)
+	mmu.ReadDiskImage(dosDiskImage)
 	cpu.Init()
 	keyboard.Init()
 	video.Init()
