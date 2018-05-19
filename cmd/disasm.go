@@ -13,24 +13,19 @@ func main() {
 	endString := flag.String("end", "", "End address")
 	flag.Parse()
 
-	startAddress := utils.DecodeCmdLineAddress(startString)
-	endAddress := utils.DecodeCmdLineAddress(endString)
+	start := utils.DecodeCmdLineAddress(startString)
+	end := utils.DecodeCmdLineAddress(endString)
 
-	if startAddress == nil {
+	if start == nil {
 		panic("Must include -start")
 	}
 
-	if endAddress == nil {
+	if end == nil {
 		e := uint16(0xffff)
-		endAddress = &e
+		end = &e
 	}
 
 	cpu.InitInstructionDecoder()
 	mmu.InitApple2eROM()
-
-	cpu.State.PC = *startAddress
-	for cpu.State.PC <= *endAddress {
-		cpu.PrintInstruction(false)
-		cpu.AdvanceInstruction()
-	}
+	utils.Disassemble(*start, *end)
 }

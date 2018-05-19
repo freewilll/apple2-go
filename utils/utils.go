@@ -60,3 +60,15 @@ func RunUntilBreakPoint(t *testing.T, breakAddress uint16, seconds int, showInst
 		t.Fatalf("Did not reach breakpoint at %04x. Got to %04x", breakAddress, cpu.State.PC)
 	}
 }
+
+func Disassemble(start uint16, end uint16) {
+	oldPC := cpu.State.PC
+
+	cpu.State.PC = start
+	for cpu.State.PC <= end {
+		cpu.PrintInstruction(false)
+		cpu.AdvanceInstruction()
+	}
+
+	cpu.State.PC = oldPC
+}

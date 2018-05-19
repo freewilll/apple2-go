@@ -851,7 +851,7 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 			postProcessIncDec(addressMode)
 
 		default:
-			fmt.Printf("Unknown opcode $%02x\n", opcode)
+			fmt.Printf("Unknown opcode $%02x at %04x\n", opcode, State.PC)
 			return
 		}
 	}
