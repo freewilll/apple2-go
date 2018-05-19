@@ -857,6 +857,12 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 	}
 }
 
+func SetColdStartReset() {
+	// Nuke the checkum byte for the reset vector. When this is called, the apple boot firmware will
+	// conclude that the reset vector is invalid and do a cold start.
+	mmu.WriteMemory(uint16(0x3f4), uint8(0))
+}
+
 func Reset() {
 	bootVector := 0xfffc
 	lsb := mmu.PageTable[bootVector>>8][bootVector&0xff] // TODO move readMemory to mmu

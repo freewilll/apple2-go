@@ -19,7 +19,7 @@ func writeBytes(address int, data []uint8) {
 	}
 }
 
-func TestDos33RtsWriteRead(t *testing.T) {
+func TestDos33RwtsWriteRead(t *testing.T) {
 	// Test writing and reading a sector using DOS 3.3's RWTS
 	cpu.InitInstructionDecoder()
 	mmu.InitRAM()
@@ -30,9 +30,13 @@ func TestDos33RtsWriteRead(t *testing.T) {
 	keyboard.Init()
 	video.Init()
 	system.Init()
+	cpu.SetColdStartReset()
 	cpu.Reset()
 
 	// Boot up DOS3.3
+	utils.RunUntilBreakPoint(t, 0x0801, 2, false, "JMP $0801 boot0 done")
+	utils.RunUntilBreakPoint(t, 0xb700, 2, false, "JMP $b700 boot1 done")
+	utils.RunUntilBreakPoint(t, 0x9d84, 2, false, "JMP $9d84 boot2 done")
 	utils.RunUntilBreakPoint(t, 0xd7d2, 5, false, "BASIC NEWSTT")
 
 	// Write a sector from 0x2000 to track 35, sector 14

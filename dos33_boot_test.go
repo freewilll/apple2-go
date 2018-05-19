@@ -14,6 +14,14 @@ import (
 
 const dosDiskImage = "dos33.dsk"
 
+func runDos33Boot(t *testing.T) {
+	// Boot up DOS3.3
+	utils.RunUntilBreakPoint(t, 0x0801, 2, false, "Boot0")
+	utils.RunUntilBreakPoint(t, 0xb700, 2, false, "Boot1")
+	utils.RunUntilBreakPoint(t, 0x9d84, 2, false, "Boot2")
+	utils.RunUntilBreakPoint(t, 0xd7d2, 5, false, "JMP to basic interpreter NEWSTT")
+}
+
 func TestDOS33Boot(t *testing.T) {
 	cpu.InitInstructionDecoder()
 	mmu.InitRAM()
@@ -24,12 +32,12 @@ func TestDOS33Boot(t *testing.T) {
 	keyboard.Init()
 	video.Init()
 	system.Init()
+	cpu.SetColdStartReset()
 	cpu.Reset()
 
 	t0 := time.Now()
 
-	// Run until BASIC would execute the program.
-	utils.RunUntilBreakPoint(t, 0xd7d2, 5, false, "BASIC NEWSTT")
+	runDos33Boot(t)
 
 	elapsed := float64(time.Since(t0) / time.Millisecond)
 	fmt.Printf("CPU Cycles:    %d\n", system.FrameCycles)

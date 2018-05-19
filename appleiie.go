@@ -91,6 +91,7 @@ func main() {
 	audio.Mute = *mute
 	audio.ClickWhenDriveHeadMoves = *clickWhenDriveHeadMoves
 	system.Init()
+	cpu.SetColdStartReset()
 	cpu.Reset()
 
 	ebiten.Run(update, 280*video.ScreenSizeFactor, 192*video.ScreenSizeFactor, 2, "Apple //e")
