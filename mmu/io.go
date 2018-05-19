@@ -185,6 +185,9 @@ func readWrite(address uint16, isRead bool) bool {
 
 			DriveState.Phase = uint8(phase)
 			MakeTrackData(DriveState.ArmPosition)
+			if audio.ClickWhenDriveHeadMoves {
+				audio.Click()
+			}
 		}
 
 		return true

@@ -8,10 +8,11 @@ import (
 )
 
 var (
-	audioContext *ebiten_audio.Context
-	player       *ebiten_audio.Player
-	firstAudio   bool
-	Mute         bool
+	audioContext            *ebiten_audio.Context
+	player                  *ebiten_audio.Player
+	firstAudio              bool
+	Mute                    bool
+	ClickWhenDriveHeadMoves bool
 )
 
 type stream struct{}
@@ -62,6 +63,7 @@ func (s *stream) Close() error {
 func InitEbiten() {
 	firstAudio = true
 	Mute = false
+	ClickWhenDriveHeadMoves = false
 
 	var err error
 	audioContext, err = ebiten_audio.NewContext(system.AudioSampleRate)

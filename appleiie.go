@@ -68,6 +68,7 @@ func main() {
 	breakAddressString := flag.String("break", "", "Break on address")
 	mute := flag.Bool("mute", false, "Mute sound")
 	diskImage := flag.String("image", "", "Disk Image")
+	clickWhenDriveHeadMoves := flag.Bool("drive-head-click", false, "Click speaker when drive head moves")
 	flag.Parse()
 
 	breakAddress = utils.DecodeCmdLineAddress(breakAddressString)
@@ -88,6 +89,7 @@ func main() {
 	video.Init()
 	audio.InitEbiten()
 	audio.Mute = *mute
+	audio.ClickWhenDriveHeadMoves = *clickWhenDriveHeadMoves
 	system.Init()
 	cpu.Reset()
 
