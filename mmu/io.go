@@ -93,8 +93,8 @@ const (
 var DriveState struct {
 	Drive        uint8
 	Spinning     bool
-	Phase        uint8
-	ArmPosition  uint8
+	Phase        int8
+	Phases       uint8
 	BytePosition int
 	Q6           bool
 	Q7           bool
@@ -116,7 +116,6 @@ func InitIO() {
 	DriveState.Drive = 1
 	DriveState.Spinning = false
 	DriveState.Phase = 0
-	DriveState.ArmPosition = 0
 	DriveState.BytePosition = 0
 	DriveState.Q6 = false
 	DriveState.Q7 = false
@@ -193,31 +192,41 @@ func readWrite(address uint16, isRead bool) bool {
 		// Ignore not implemented memory management reg
 		return true
 
-		// Drive stepper motor phase change
+	// Drive stepper motor phase change
 	case S6CLRDRVP0, S6SETDRVP0, S6CLRDRVP1, S6SETDRVP1, S6CLRDRVP2, S6SETDRVP2, S6CLRDRVP3, S6SETDRVP3:
-		if ((address - S6CLRDRVP0) % 2) == 1 {
-			// When the magnet coil is energized, move the arm by half a track
-			phase := int8(address-S6CLRDRVP0) / 2
-			change := int8(DriveState.Phase) - phase
-			if change < 0 {
-				change += 4
+		magnet := (address - S6CLRDRVP0) / 2
+		on := ((address - S6CLRDRVP0) % 2) == 1
+
+		if on {
+			DriveState.Phases |= (1 << magnet)
+
+			// Move head if a neighboring magnet is on and all others are off
+			direction := int8(0)
+			if (DriveState.Phases & (1 << uint8((DriveState.Phase+1)&3))) != 0 {
+				direction += 1
+			}
+			if (DriveState.Phases & (1 << uint8((DriveState.Phase+3)&3))) != 0 {
+				direction -= 1
 			}
 
-			if change == 1 { // Inward
-				if DriveState.ArmPosition > 0 {
-					DriveState.ArmPosition--
-				}
-			} else if change == 3 { // Outward
-				if DriveState.ArmPosition < 79 {
-					DriveState.ArmPosition++
-				}
-			}
+			if direction != 0 {
+				DriveState.Phase += direction
 
-			DriveState.Phase = uint8(phase)
-			MakeTrackData(DriveState.ArmPosition)
-			if audio.ClickWhenDriveHeadMoves {
-				audio.Click()
+				if DriveState.Phase < 0 {
+					DriveState.Phase = 0
+				}
+				if DriveState.Phase == 80 {
+					DriveState.Phase = 79
+				}
+
+				MakeTrackData(uint8(DriveState.Phase))
+
+				if audio.ClickWhenDriveHeadMoves {
+					audio.Click()
+				}
 			}
+		} else {
+			DriveState.Phases &= ^(1 << magnet)
 		}
 
 		return true
