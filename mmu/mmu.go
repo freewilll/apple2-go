@@ -25,6 +25,10 @@ var (
 	UsingExternalSlotRom bool // Which IO ROM is being used
 	UpperReadMappedToROM bool // Do reads go to the RAM or ROM
 	UpperRamReadOnly     bool // Is the upper RAM read only
+	FakeAuxMemoryRead    bool // Aux memory isn't implemented
+	FakeAuxMemoryWrite   bool // Aux memory isn't implemented
+	FakeAltZP            bool // Aux memory isn't implemented
+	FakePage2            bool // Aux memory isn't implemented
 )
 
 func ApplyMemoryConfiguration() {
@@ -146,9 +150,33 @@ func SetD000Bank(value int) {
 	ApplyMemoryConfiguration()
 }
 
+func SetFakeAuxMemoryRead(value bool) {
+	FakeAuxMemoryRead = value
+	ApplyMemoryConfiguration()
+}
+
+func SetFakeAuxMemoryWrite(value bool) {
+	FakeAuxMemoryWrite = value
+	ApplyMemoryConfiguration()
+}
+
+func SetFakeAltZP(value bool) {
+	FakeAltZP = value
+	ApplyMemoryConfiguration()
+}
+
+func SetFakePage2(value bool) {
+	FakePage2 = value
+	ApplyMemoryConfiguration()
+}
+
 func InitRAM() {
 	UpperRamReadOnly = false
 	D000Bank = 2
+	FakeAuxMemoryRead = false  // Aux memory isn't implemented
+	FakeAuxMemoryWrite = false // Aux memory isn't implemented
+	FakeAltZP = false          // Aux memory isn't implemented
+	FakePage2 = false          // Aux memory isn't implemented
 	ApplyMemoryConfiguration()
 }
 
@@ -188,9 +216,25 @@ func SetMemoryMode(mode uint8) {
 func ReadMemory(address uint16) uint8 {
 	if (address >= 0xc000) && (address < 0xc100) {
 		return ReadIO(address)
-	} else {
-		return ReadPageTable[address>>8][address&0xff]
 	}
+
+	if FakePage2 && (address >= 0x400 && address < 0x800) {
+		// Return nothingness
+		return uint8(0x00)
+	}
+
+	if FakeAuxMemoryRead {
+		if address >= 0x200 {
+			// Return nothingness
+			return uint8(0x00)
+		} else {
+			if FakeAltZP {
+				return uint8(0x00)
+			}
+		}
+	}
+
+	return ReadPageTable[address>>8][address&0xff]
 }
 
 func WriteMemory(address uint16, value uint8) {
@@ -206,10 +250,19 @@ func WriteMemory(address uint16, value uint8) {
 		return
 	}
 
+	if FakePage2 && (address >= 0x400 && address < 0x800) {
+		// Do nothing
+		return
+	}
+
 	memory := WritePageTable[address>>8]
 	// If memory is nil, then it's read only. The write is ignored.
 	if memory != nil {
 		memory[uint8(address&0xff)] = value
+	}
+
+	if FakeAuxMemoryWrite {
+		return
 	}
 
 	if system.RunningFunctionalTests && address == 0x200 {

@@ -142,8 +142,34 @@ func readWrite(address uint16, isRead bool) bool {
 	}
 
 	switch address {
+	case CLRAUXRD:
+		SetFakeAuxMemoryRead(false)
+		return true
+	case SETAUXRD:
+		SetFakeAuxMemoryRead(true)
+		return true
+	case CLRAUXWR:
+		SetFakeAuxMemoryWrite(false)
+		return true
+	case SETAUXWR:
+		SetFakeAuxMemoryWrite(true)
+		return true
+	case CLRAUXZP:
+		SetFakeAltZP(false)
+		return true
+	case SETAUXZP:
+		SetFakeAltZP(true)
+		return true
 	case CLR80VID:
 		// 80 column card hasn't been implemented yet
+		return true
+	case TXTPAGE1:
+		// 80 column card hasn't been implemented yet
+		SetFakePage2(false)
+		return true
+	case TXTPAGE2:
+		// 80 column card hasn't been implemented yet
+		SetFakePage2(true)
 		return true
 	case CLRTEXT:
 		VideoState.TextMode = false
@@ -156,12 +182,6 @@ func readWrite(address uint16, isRead bool) bool {
 		return true
 	case SETMIXED:
 		VideoState.Mixed = true
-		return true
-	case TXTPAGE1:
-		return true
-	case TXTPAGE2:
-		return true
-		fmt.Println("TXTPAGE2 not implemented")
 		return true
 	case CLRHIRES:
 		VideoState.HiresMode = false
@@ -252,6 +272,9 @@ func ReadIO(address uint16) uint8 {
 			keyboard.ResetStrobe()
 			return strobe
 		}
+	case RDRAMRD, RDRAMWR, RDAUXZP:
+		panic("Read/write aux memory not implemented")
+		return 0x0d
 	case RDCXROM:
 		if UsingExternalSlotRom {
 			return 0x8d
