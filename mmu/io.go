@@ -67,6 +67,7 @@ const (
 
 	OPNAPPLE = 0xC061 // open apple (command) key data
 	CLSAPPLE = 0xC062 // closed apple (option) key data
+	STATEREG = 0xC068 // Has no effect on //e
 
 	PDLTRIG = 0xC070 // trigger paddles
 
@@ -134,6 +135,12 @@ func driveIsreadSequencing() bool {
 // Handle soft switch addresses where both a read and a write has a side
 // effect and the return value is meaningless
 func readWrite(address uint16, isRead bool) bool {
+	lsb := address & 0xff
+	if lsb >= 0x80 && lsb < 0x90 {
+		SetMemoryMode(uint8(lsb - 0x80))
+		return true
+	}
+
 	switch address {
 	case CLR80VID:
 		// 80 column card hasn't been implemented yet
@@ -161,6 +168,9 @@ func readWrite(address uint16, isRead bool) bool {
 		return true
 	case SETHIRES:
 		VideoState.HiresMode = true
+		return true
+	case STATEREG:
+		// Ignore not implemented memory management reg
 		return true
 
 		// Drive stepper motor phase change

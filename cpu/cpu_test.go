@@ -68,7 +68,8 @@ func TestCPU(t *testing.T) {
 			RomPretendingToBeRAM[i] = bytes[0xc000+i]
 		}
 		for i := 0x0; i < 0x40; i++ {
-			mmu.PageTable[0xc0+i] = RomPretendingToBeRAM[i*0x100 : i*0x100+0x100]
+			mmu.ReadPageTable[0xc0+i] = RomPretendingToBeRAM[i*0x100 : i*0x100+0x100]
+			mmu.WritePageTable[0xc0+i] = RomPretendingToBeRAM[i*0x100 : i*0x100+0x100]
 		}
 
 		keyboard.Init()

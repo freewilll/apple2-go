@@ -40,7 +40,7 @@ func printInstruction(instruction string, showRegisters bool) {
 }
 
 func PrintInstruction(showRegisters bool) {
-	opcodeValue := mmu.PageTable[(State.PC)>>8][(State.PC)&0xff]
+	opcodeValue := mmu.ReadPageTable[(State.PC)>>8][(State.PC)&0xff]
 	opcode := OpCodes[opcodeValue]
 	mnemonic := opcode.Mnemonic
 	size := opcode.AddressingMode.OperandSize
@@ -56,7 +56,7 @@ func PrintInstruction(showRegisters bool) {
 	var suffix string
 
 	if opcode.AddressingMode.Mode == AmRelative {
-		value = uint16(mmu.PageTable[(State.PC+1)>>8][(State.PC+1)&0xff])
+		value = uint16(mmu.ReadPageTable[(State.PC+1)>>8][(State.PC+1)&0xff])
 		var relativeAddress uint16
 		if (value & 0x80) == 0 {
 			relativeAddress = State.PC + 2 + uint16(value)
@@ -67,12 +67,12 @@ func PrintInstruction(showRegisters bool) {
 		suffix = fmt.Sprintf(stringFormat, relativeAddress)
 		opcodes = fmt.Sprintf("%02x %02x       ", opcodeValue, value)
 	} else if size == 1 {
-		value = uint16(mmu.PageTable[(State.PC+1)>>8][(State.PC+1)&0xff])
+		value = uint16(mmu.ReadPageTable[(State.PC+1)>>8][(State.PC+1)&0xff])
 		suffix = fmt.Sprintf(stringFormat, value)
 		opcodes = fmt.Sprintf("%02x %02x       ", opcodeValue, value)
 	} else if size == 2 {
-		lsb := mmu.PageTable[(State.PC+1)>>8][(State.PC+1)&0xff]
-		msb := mmu.PageTable[(State.PC+2)>>8][(State.PC+2)&0xff]
+		lsb := mmu.ReadPageTable[(State.PC+1)>>8][(State.PC+1)&0xff]
+		msb := mmu.ReadPageTable[(State.PC+2)>>8][(State.PC+2)&0xff]
 		value = uint16(lsb) + uint16(msb)*0x100
 		suffix = fmt.Sprintf(stringFormat, value)
 		opcodes = fmt.Sprintf("%02x %02x %02x    ", opcodeValue, lsb, msb)
@@ -82,7 +82,7 @@ func PrintInstruction(showRegisters bool) {
 }
 
 func AdvanceInstruction() {
-	opcodeValue := mmu.PageTable[(State.PC)>>8][(State.PC)&0xff]
+	opcodeValue := mmu.ReadPageTable[(State.PC)>>8][(State.PC)&0xff]
 	opcode := OpCodes[opcodeValue]
 	size := opcode.AddressingMode.OperandSize + 1
 	State.PC += uint16(size)
@@ -100,7 +100,7 @@ func DumpMemory(offset uint16) {
 			}
 			fmt.Printf("%04x  ", offset+i)
 		}
-		fmt.Printf(" %02x", mmu.PageTable[(offset+i)>>8][(offset+i)&0xff])
+		fmt.Printf(" %02x", mmu.ReadPageTable[(offset+i)>>8][(offset+i)&0xff])
 	}
 	fmt.Print("\n")
 }

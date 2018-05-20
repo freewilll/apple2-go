@@ -94,14 +94,14 @@ func isN() bool {
 }
 
 func push8(value uint8) {
-	mmu.PageTable[mmu.StackPage][State.SP] = value
+	mmu.WritePageTable[mmu.StackPage][State.SP] = value
 	State.SP -= 1
 	State.SP &= 0xff
 }
 
 func push16(value uint16) {
-	mmu.PageTable[mmu.StackPage][State.SP] = uint8(value >> 8)
-	mmu.PageTable[mmu.StackPage][State.SP-1] = uint8(value & 0xff)
+	mmu.WritePageTable[mmu.StackPage][State.SP] = uint8(value >> 8)
+	mmu.WritePageTable[mmu.StackPage][State.SP-1] = uint8(value & 0xff)
 	State.SP -= 2
 	State.SP &= 0xff
 }
@@ -109,14 +109,14 @@ func push16(value uint16) {
 func pop8() uint8 {
 	State.SP += 1
 	State.SP &= 0xff
-	return mmu.PageTable[mmu.StackPage][State.SP]
+	return mmu.ReadPageTable[mmu.StackPage][State.SP]
 }
 
 func pop16() uint16 {
 	State.SP += 2
 	State.SP &= 0xff
-	msb := uint16(mmu.PageTable[mmu.StackPage][State.SP])
-	lsb := uint16(mmu.PageTable[mmu.StackPage][State.SP-1])
+	msb := uint16(mmu.ReadPageTable[mmu.StackPage][State.SP])
+	lsb := uint16(mmu.ReadPageTable[mmu.StackPage][State.SP-1])
 	return lsb + msb<<8
 }
 
@@ -864,8 +864,11 @@ func SetColdStartReset() {
 }
 
 func Reset() {
+	mmu.InitROM()
+	mmu.InitRAM()
+
 	bootVector := 0xfffc
-	lsb := mmu.PageTable[bootVector>>8][bootVector&0xff] // TODO move readMemory to mmu
-	msb := mmu.PageTable[(bootVector+1)>>8][(bootVector+1)&0xff]
+	lsb := mmu.ReadPageTable[bootVector>>8][bootVector&0xff]
+	msb := mmu.ReadPageTable[(bootVector+1)>>8][(bootVector+1)&0xff]
 	State.PC = uint16(lsb) + uint16(msb)<<8
 }
