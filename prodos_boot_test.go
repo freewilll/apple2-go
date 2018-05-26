@@ -31,12 +31,14 @@ func TestProdosBoot(t *testing.T) {
 
 	utils.RunUntilBreakPoint(t, 0xc600, 2, false, "Boot ROM")
 	utils.RunUntilBreakPoint(t, 0x0801, 2, false, "Loader")
-	utils.RunUntilBreakPoint(t, 0x2000, 3, false, "Relocator")
+	utils.RunUntilBreakPoint(t, 0x2000, 3, false, "Kernel Relocator")
 	utils.RunUntilBreakPoint(t, 0x0080, 1, false, "AUX RAM test")
 	utils.RunUntilBreakPoint(t, 0x2932, 1, false, "Relocation done")
 	utils.RunUntilBreakPoint(t, 0x21f3, 1, false, "The first JSR $bf00 - ONLINE - get names of one or all online volumes")
 	utils.RunUntilBreakPoint(t, 0xd000, 1, false, "First call to MLI kernel")
-	// utils.RunUntilBreakPoint(t, 0x0800, 1, false, "BI loader")
+	utils.RunUntilBreakPoint(t, 0x0800, 2, false, "BI loader")
+	utils.RunUntilBreakPoint(t, 0x2000, 2, false, "BI Relocator")
+	utils.RunUntilBreakPoint(t, 0xbe00, 52, false, "BI Start")
 
 	elapsed := float64(time.Since(t0) / time.Millisecond)
 	fmt.Printf("CPU Cycles:    %d\n", system.FrameCycles)

@@ -255,14 +255,15 @@ func WriteMemory(address uint16, value uint8) {
 		return
 	}
 
+	if FakeAuxMemoryWrite {
+		// If there is no aux memory, then the write is ignored.
+		return
+	}
+
 	memory := WritePageTable[address>>8]
 	// If memory is nil, then it's read only. The write is ignored.
 	if memory != nil {
 		memory[uint8(address&0xff)] = value
-	}
-
-	if FakeAuxMemoryWrite {
-		return
 	}
 
 	if system.RunningFunctionalTests && address == 0x200 {
