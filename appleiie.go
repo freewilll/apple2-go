@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/hajimehoshi/ebiten"
 
@@ -63,13 +64,26 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
+	var Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "Synopsis: %s [disk image file]\n\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "Options\n")
+		flag.PrintDefaults()
+	}
+	flag.Usage = Usage
+
 	showInstructions = flag.Bool("show-instructions", false, "Show instructions code while running")
 	disableFirmwareWait = flag.Bool("disable-wait", false, "Ignore JSRs to firmware wait at $FCA8")
 	breakAddressString := flag.String("break", "", "Break on address")
 	mute := flag.Bool("mute", false, "Mute sound")
-	diskImage := flag.String("image", "", "Disk Image")
 	clickWhenDriveHeadMoves := flag.Bool("drive-head-click", false, "Click speaker when drive head moves")
 	flag.Parse()
+
+	diskImages := flag.Args()
+	var diskImage string
+	if len(diskImages) > 0 {
+		diskImage = diskImages[0]
+	}
 
 	breakAddress = utils.DecodeCmdLineAddress(breakAddressString)
 
@@ -80,8 +94,8 @@ func main() {
 	mmu.InitApple2eROM()
 	mmu.InitIO()
 
-	if *diskImage != "" {
-		mmu.ReadDiskImage(*diskImage)
+	if diskImage != "" {
+		mmu.ReadDiskImage(diskImage)
 	}
 
 	cpu.Init()
