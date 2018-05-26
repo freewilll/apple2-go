@@ -2,14 +2,16 @@ package main
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"mos6502go/cpu"
+	"mos6502go/disk"
 	"mos6502go/keyboard"
 	"mos6502go/mmu"
 	"mos6502go/system"
 	"mos6502go/utils"
 	"mos6502go/video"
-	"testing"
-	"time"
 )
 
 const dosDiskImage = "dos33.dsk"
@@ -27,7 +29,7 @@ func TestDOS33Boot(t *testing.T) {
 	mmu.InitRAM()
 	mmu.InitApple2eROM()
 	mmu.InitIO()
-	mmu.ReadDiskImage(dosDiskImage)
+	disk.ReadDiskImage(dosDiskImage)
 	cpu.Init()
 	keyboard.Init()
 	video.Init()

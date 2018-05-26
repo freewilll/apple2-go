@@ -2,8 +2,11 @@ package mmu
 
 import (
 	"fmt"
+
 	"mos6502go/audio"
+	"mos6502go/disk"
 	"mos6502go/keyboard"
+	"mos6502go/system"
 )
 
 // Adapted from
@@ -90,16 +93,6 @@ const (
 	S6Q7H      = 0xC0EF // write
 )
 
-var DriveState struct {
-	Drive        uint8
-	Spinning     bool
-	Phase        int8
-	Phases       uint8
-	BytePosition int
-	Q6           bool
-	Q7           bool
-}
-
 var VideoState struct {
 	TextMode  bool
 	HiresMode bool
@@ -113,22 +106,22 @@ func InitIO() {
 	emptySlot(7)
 
 	// Initialize slot 6 drive
-	DriveState.Drive = 1
-	DriveState.Spinning = false
-	DriveState.Phase = 0
-	DriveState.BytePosition = 0
-	DriveState.Q6 = false
-	DriveState.Q7 = false
+	system.DriveState.Drive = 1
+	system.DriveState.Spinning = false
+	system.DriveState.Phase = 0
+	system.DriveState.BytePosition = 0
+	system.DriveState.Q6 = false
+	system.DriveState.Q7 = false
 
 	VideoState.TextMode = true
 	VideoState.HiresMode = false
 	VideoState.Mixed = false
 
-	InitDiskImage()
+	disk.InitDiskImage()
 }
 
 func driveIsreadSequencing() bool {
-	return (!DriveState.Q6) && (!DriveState.Q7)
+	return (!system.DriveState.Q6) && (!system.DriveState.Q7)
 }
 
 // Handle soft switch addresses where both a read and a write has a side
@@ -209,68 +202,68 @@ func readWrite(address uint16, isRead bool) bool {
 		on := ((address - S6CLRDRVP0) % 2) == 1
 
 		if on {
-			DriveState.Phases |= (1 << magnet)
+			system.DriveState.Phases |= (1 << magnet)
 
 			// Move head if a neighboring magnet is on and all others are off
 			direction := int8(0)
-			if (DriveState.Phases & (1 << uint8((DriveState.Phase+1)&3))) != 0 {
+			if (system.DriveState.Phases & (1 << uint8((system.DriveState.Phase+1)&3))) != 0 {
 				direction += 1
 			}
-			if (DriveState.Phases & (1 << uint8((DriveState.Phase+3)&3))) != 0 {
+			if (system.DriveState.Phases & (1 << uint8((system.DriveState.Phase+3)&3))) != 0 {
 				direction -= 1
 			}
 
 			if direction != 0 {
-				DriveState.Phase += direction
+				system.DriveState.Phase += direction
 
-				if DriveState.Phase < 0 {
-					DriveState.Phase = 0
+				if system.DriveState.Phase < 0 {
+					system.DriveState.Phase = 0
 				}
-				if DriveState.Phase == 80 {
-					DriveState.Phase = 79
+				if system.DriveState.Phase == 80 {
+					system.DriveState.Phase = 79
 				}
 
-				MakeTrackData(uint8(DriveState.Phase))
+				disk.MakeTrackData(uint8(system.DriveState.Phase))
 
 				if audio.ClickWhenDriveHeadMoves {
 					audio.Click()
 				}
 			}
 		} else {
-			DriveState.Phases &= ^(1 << magnet)
+			system.DriveState.Phases &= ^(1 << magnet)
 		}
 
 		return true
 
 	case S6MOTOROFF:
-		DriveState.Spinning = false
+		system.DriveState.Spinning = false
 		return true
 	case S6MOTORON:
-		DriveState.Spinning = true
+		system.DriveState.Spinning = true
 		return true
 	case S6SELDRV1:
-		DriveState.Drive = 1
+		system.DriveState.Drive = 1
 		return true
 	case S6SELDRV2:
-		DriveState.Drive = 2
+		system.DriveState.Drive = 2
 		return true
 	case S6Q6L:
 		if !isRead {
-			DriveState.Q6 = false
+			system.DriveState.Q6 = false
 			return true
 		}
 		return false
 	case S6Q6H:
 		if isRead {
-			DriveState.Q6 = true
+			system.DriveState.Q6 = true
 			return true
 		}
 		return false
 	case S6Q7L:
-		DriveState.Q7 = false
+		system.DriveState.Q7 = false
 		return true
 	case S6Q7H:
-		DriveState.Q7 = true
+		system.DriveState.Q7 = true
 		return true
 
 	default:
@@ -332,7 +325,7 @@ func ReadIO(address uint16) uint8 {
 	case SPEAKER:
 		audio.Click()
 	case S6Q6L:
-		return ReadTrackData()
+		return disk.ReadTrackData()
 	default:
 		panic(fmt.Sprintf("TODO read %04x\n", address))
 	}
@@ -364,7 +357,7 @@ func WriteIO(address uint16, value uint8) {
 	case SETC3ROM:
 		// SETC3ROM not implemented
 	case S6Q6H:
-		WriteTrackData(value)
+		disk.WriteTrackData(value)
 	default:
 		panic(fmt.Sprintf("TODO write %04x\n", address))
 	}

@@ -1,8 +1,10 @@
-package mmu
+package disk
 
 import (
 	"fmt"
 	"io/ioutil"
+
+	"mos6502go/system"
 )
 
 const tracksPerDisk = 35
@@ -301,7 +303,7 @@ func MakeTrackData(armPosition uint8) {
 		return
 	}
 
-	DriveState.BytePosition = 0 // Point the head at the first sector
+	system.DriveState.BytePosition = 0 // Point the head at the first sector
 
 	// For each sector, encode the data and add it to trackData
 	for physicalSector := uint8(0); physicalSector < sectorsPerTrack; physicalSector++ {
@@ -319,22 +321,22 @@ func decodeAddressField(data []uint8) addressField {
 
 // Read a byte from the disk head and spin the disk along
 func ReadTrackData() (result uint8) {
-	result = trackData[DriveState.BytePosition]
+	result = trackData[system.DriveState.BytePosition]
 
-	if DriveState.BytePosition >= 9 {
-		if trackData[DriveState.BytePosition-9] == 0xd5 &&
-			trackData[DriveState.BytePosition-8] == 0xaa &&
-			trackData[DriveState.BytePosition-7] == 0x96 {
+	if system.DriveState.BytePosition >= 9 {
+		if trackData[system.DriveState.BytePosition-9] == 0xd5 &&
+			trackData[system.DriveState.BytePosition-8] == 0xaa &&
+			trackData[system.DriveState.BytePosition-7] == 0x96 {
 			var addressData []uint8
-			addressData = trackData[DriveState.BytePosition-6 : DriveState.BytePosition]
+			addressData = trackData[system.DriveState.BytePosition-6 : system.DriveState.BytePosition]
 			lastReadAddress = decodeAddressField(addressData)
-			lastReadSectorDataPosition = DriveState.BytePosition + 8
+			lastReadSectorDataPosition = system.DriveState.BytePosition + 8
 		}
 	}
 
-	DriveState.BytePosition++
-	if DriveState.BytePosition == trackDataBytes {
-		DriveState.BytePosition = 0
+	system.DriveState.BytePosition++
+	if system.DriveState.BytePosition == trackDataBytes {
+		system.DriveState.BytePosition = 0
 	}
 
 	return

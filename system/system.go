@@ -19,6 +19,16 @@ var (
 	AudioAttenuationCounter uint64
 )
 
+var DriveState struct {
+	Drive        uint8
+	Spinning     bool
+	Phase        int8
+	Phases       uint8
+	BytePosition int
+	Q6           bool
+	Q7           bool
+}
+
 func Init() {
 	Cycles = 0
 	AudioChannel = make(chan int16, AudioSampleRate*4) // 1 second

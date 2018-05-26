@@ -9,6 +9,7 @@ import (
 
 	"mos6502go/audio"
 	"mos6502go/cpu"
+	"mos6502go/disk"
 	"mos6502go/keyboard"
 	"mos6502go/mmu"
 	"mos6502go/system"
@@ -95,7 +96,7 @@ func main() {
 	mmu.InitIO()
 
 	if diskImage != "" {
-		mmu.ReadDiskImage(diskImage)
+		disk.ReadDiskImage(diskImage)
 	}
 
 	cpu.Init()
@@ -110,5 +111,5 @@ func main() {
 
 	ebiten.Run(update, 280*video.ScreenSizeFactor, 192*video.ScreenSizeFactor, 2, "Apple //e")
 
-	mmu.FlushImage()
+	disk.FlushImage()
 }

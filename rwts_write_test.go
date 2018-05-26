@@ -1,14 +1,15 @@
 package main
 
 import (
+	"testing"
+
 	"mos6502go/cpu"
+	"mos6502go/disk"
 	"mos6502go/keyboard"
 	"mos6502go/mmu"
 	"mos6502go/system"
 	"mos6502go/utils"
 	"mos6502go/video"
-
-	"testing"
 )
 
 const rwtsDosDiskImage = "dos33.dsk"
@@ -25,7 +26,7 @@ func TestDos33RwtsWriteRead(t *testing.T) {
 	mmu.InitRAM()
 	mmu.InitApple2eROM()
 	mmu.InitIO()
-	mmu.ReadDiskImage(rwtsDosDiskImage)
+	disk.ReadDiskImage(rwtsDosDiskImage)
 	cpu.Init()
 	keyboard.Init()
 	video.Init()

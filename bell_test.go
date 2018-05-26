@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"testing"
+
 	"mos6502go/cpu"
 	"mos6502go/keyboard"
 	"mos6502go/mmu"
 	"mos6502go/system"
 	"mos6502go/video"
-	"testing"
 )
 
 func testBellCycles(delay int) {

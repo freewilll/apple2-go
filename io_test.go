@@ -1,14 +1,15 @@
 package main
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"mos6502go/cpu"
 	"mos6502go/keyboard"
 	"mos6502go/mmu"
 	"mos6502go/system"
 	"mos6502go/video"
-	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestIoBankSwitching(t *testing.T) {
