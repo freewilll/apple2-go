@@ -26,6 +26,9 @@ var (
 
 func Init() {
 	var err error
+	// The character map pr-latin1.png was downloaded from
+	// http://www.kreativekorp.com/software/fonts/apple2.shtml
+
 	charMap, _, err = ebitenutil.NewImageFromFile("video/pr-latin1.png", ebiten.FilterNearest)
 	if err != nil {
 		panic(err)
