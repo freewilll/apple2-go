@@ -168,8 +168,6 @@ func drawTextOrLoresScreen(screen *ebiten.Image) error {
 }
 
 func drawHiresScreen(screen *ebiten.Image) error {
-	// mmu.VideoState.Mixed
-
 	if ScreenSizeFactor != 1 {
 		panic("Hires mode for ScreenSizeFactor != 1 not implemented")
 	}
