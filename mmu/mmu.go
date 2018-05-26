@@ -29,6 +29,9 @@ var (
 	FakeAuxMemoryWrite   bool // Aux memory isn't implemented
 	FakeAltZP            bool // Aux memory isn't implemented
 	FakePage2            bool // Aux memory isn't implemented
+	Col80                bool // 80 Column card is on (not implemented)
+	Store80              bool // 80 Column card is on (not implemented)
+	Page2                bool // Main memory Page2 is selected
 )
 
 func ApplyMemoryConfiguration() {
@@ -165,7 +168,24 @@ func SetFakeAltZP(value bool) {
 	ApplyMemoryConfiguration()
 }
 
-func SetFakePage2(value bool) {
+func SetCol80(value bool) {
+	Col80 = value
+	// No changes are needed when this is toggled
+}
+
+func SetPage2(value bool) {
+	// If the 80 column card is enabled, then this toggles aux memory
+	// Otherwise, page1/page2 is toggled in the main memory
+	if Col80 {
+		FakePage2 = value
+		ApplyMemoryConfiguration()
+	} else {
+		Page2 = value
+	}
+}
+
+func SetStore80(value bool) {
+	Store80 = value
 	FakePage2 = value
 	ApplyMemoryConfiguration()
 }
@@ -177,6 +197,8 @@ func InitRAM() {
 	FakeAuxMemoryWrite = false // Aux memory isn't implemented
 	FakeAltZP = false          // Aux memory isn't implemented
 	FakePage2 = false          // Aux memory isn't implemented
+	Col80 = false              // Aux memory isn't implemented
+	Page2 = false
 	ApplyMemoryConfiguration()
 }
 

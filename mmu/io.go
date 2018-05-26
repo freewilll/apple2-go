@@ -160,15 +160,16 @@ func readWrite(address uint16, isRead bool) bool {
 		SetFakeAltZP(true)
 		return true
 	case CLR80VID:
-		// 80 column card hasn't been implemented yet
+		SetCol80(false)
+		return true
+	case SET80VID:
+		SetCol80(true)
 		return true
 	case TXTPAGE1:
-		// 80 column card hasn't been implemented yet
-		SetFakePage2(false)
+		SetPage2(false)
 		return true
 	case TXTPAGE2:
-		// 80 column card hasn't been implemented yet
-		SetFakePage2(true)
+		SetPage2(true)
 		return true
 	case CLRTEXT:
 		VideoState.TextMode = false
@@ -187,6 +188,16 @@ func readWrite(address uint16, isRead bool) bool {
 		return true
 	case SETHIRES:
 		VideoState.HiresMode = true
+		return true
+	case CLR80COL:
+		if !isRead {
+			SetStore80(false)
+			return true
+		} else {
+			return false
+		}
+	case SET80COL:
+		SetStore80(true)
 		return true
 	case STATEREG:
 		// Ignore not implemented memory management reg
@@ -294,6 +305,13 @@ func ReadIO(address uint16) uint8 {
 		// using 80-column display mode not implemented
 		return 0x0d
 
+	case RDPAGE2:
+		if Page2 {
+			return 0x8d
+		} else {
+			return 0x0d
+		}
+
 	// 4-bit annunciator inputs
 	case SETAN0, CLRAN0, SETAN1, CLRAN1, SETAN2, CLRAN2, SETAN3, CLRAN3:
 		// Annunciators not implemented
@@ -303,11 +321,11 @@ func ReadIO(address uint16) uint8 {
 	case CLSAPPLE:
 		// Closed apple key not implemented
 	case RD80COL:
-		// RD80COL not implemented
-		return 0x0d
-	case RDPAGE2:
-		// RDPAGE2 not implemented
-		return 0x0d
+		if Store80 {
+			return 0x8d
+		} else {
+			return 0x0d
+		}
 	case RDALTCH:
 		// RDALTCH not implemented
 		return 0x0d
@@ -341,8 +359,6 @@ func WriteIO(address uint16, value uint8) {
 	case CLR80COL:
 		// CLR80COL not implemented
 		return
-	case SET80COL:
-		// SET80COL not implemented
 	case CLRC3ROM:
 		// CLRC3ROM not implemented
 	case SETC3ROM:

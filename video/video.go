@@ -120,6 +120,11 @@ func drawLores(screen *ebiten.Image, x int, y int, value uint8) error {
 func drawTextBlock(screen *ebiten.Image, start int, end int) error {
 	for y := start; y < end; y++ {
 		base := 128*(y%8) + 40*(y/8)
+
+		if mmu.Page2 {
+			base += 0x400
+		}
+
 		for x := 0; x < 40; x++ {
 			offset := textVideoMemory + base + x
 			value := mmu.ReadPageTable[offset>>8][offset&0xff]
@@ -136,6 +141,11 @@ func drawTextBlock(screen *ebiten.Image, start int, end int) error {
 func drawLoresBlock(screen *ebiten.Image, start int, end int) error {
 	for y := start; y < end; y++ {
 		base := 128*(y%8) + 40*(y/8)
+
+		if mmu.Page2 {
+			base += 0x400
+		}
+
 		for x := 0; x < 40; x++ {
 			offset := textVideoMemory + base + x
 			value := mmu.ReadPageTable[offset>>8][offset&0xff]
@@ -181,6 +191,10 @@ func drawHiresScreen(screen *ebiten.Image) error {
 
 		// Woz is a genius
 		yOffset := 0x2000 - (0x3d8)*(y>>6) + 0x80*(y>>3) + 0x400*(y&0x7)
+
+		if mmu.Page2 {
+			yOffset += 0x2000
+		}
 
 		for x := 0; x < 40; x++ {
 			offset := yOffset + x
