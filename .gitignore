@@ -1,7 +1,7 @@
-test-cpu
-cpu.prof
-mem.prof
-mos6502go.test
+apple2e
+apple2e.test
 apple2e.rom
 dos33.dsk
 prodos.dsk
+cpu.prof
+mem.prof
