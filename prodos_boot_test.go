@@ -14,7 +14,7 @@ import (
 	"github.com/freewilll/apple2/video"
 )
 
-const prodosDiskImage = "prodos.dsk"
+const prodosDiskImage = "prodos19.dsk"
 
 func TestProdosBoot(t *testing.T) {
 	cpu.InitInstructionDecoder()
