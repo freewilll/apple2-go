@@ -17,6 +17,9 @@ const (
 	flashFrames      = 11    // Number of frames when FLASH mode is toggled
 )
 
+// drawTextLoresByte is a function definition used for mixed text/lores rendering
+type drawTextLoresByte func(*ebiten.Image, int, int, uint8) error
+
 var (
 	charMap      *ebiten.Image     // Character map for text screen
 	flashCounter int               // Counter used for flashing characters on the text screen
@@ -142,8 +145,8 @@ func drawLores(screen *ebiten.Image, x int, y int, value uint8) error {
 	return nil
 }
 
-// drawTextBlock draws a number of lines of text from start to end
-func drawTextBlock(screen *ebiten.Image, start int, end int) error {
+// drawTextLoresBlock draws a number of lines of text or lores from start to end
+func drawTextLoresBlock(screen *ebiten.Image, start int, end int, drawer drawTextLoresByte) error {
 	for y := start; y < end; y++ {
 		base := 128*(y%8) + 40*(y/8)
 
@@ -155,7 +158,7 @@ func drawTextBlock(screen *ebiten.Image, start int, end int) error {
 		for x := 0; x < 40; x++ {
 			offset := textVideoMemory + base + x
 			value := mmu.ReadPageTable[offset>>8][offset&0xff]
-			if err := drawText(screen, x, y, value); err != nil {
+			if err := drawer(screen, x, y, value); err != nil {
 				return err
 			}
 		}
@@ -164,25 +167,15 @@ func drawTextBlock(screen *ebiten.Image, start int, end int) error {
 	return nil
 }
 
+// drawTextBlock draws a number of lines of text from start to end
+func drawTextBlock(screen *ebiten.Image, start int, end int) error {
+	drawTextLoresBlock(screen, start, end, drawText)
+	return nil
+}
+
 // drawTextBlock draws a number of lores lines from the equivalent text start to end line
 func drawLoresBlock(screen *ebiten.Image, start int, end int) error {
-	for y := start; y < end; y++ {
-		base := 128*(y%8) + 40*(y/8)
-
-		// Flip to the 2nd page if so toggled
-		if mmu.Page2 {
-			base += 0x400
-		}
-
-		for x := 0; x < 40; x++ {
-			offset := textVideoMemory + base + x
-			value := mmu.ReadPageTable[offset>>8][offset&0xff]
-			if err := drawLores(screen, x, y, value); err != nil {
-				return err
-			}
-		}
-	}
-
+	drawTextLoresBlock(screen, start, end, drawLores)
 	return nil
 }
 
