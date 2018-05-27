@@ -28,9 +28,9 @@ Download `apple2e.rom` from
 
 ## Running it
 
-    go run apple2e.go
-    go run apple2e.go my_disk_image.dsk
-    go run apple2e.go -drive-head-click my_disk_image.dsk
+    ./apple2
+    ./apple2 my_disk_image.dsk
+    ./apple2 -drive-head-click my_disk_image.dsk
 
 ## Running the tests
 ### Setting up the tests
