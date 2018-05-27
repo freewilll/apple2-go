@@ -19,7 +19,7 @@ const dosDiskImage = "dos33.dsk"
 func runDos33Boot(t *testing.T) {
 	// Boot up DOS3.3
 	utils.RunUntilBreakPoint(t, 0x0801, 2, false, "Boot0")
-	utils.RunUntilBreakPoint(t, 0x3700, 1, false, "Boot1") // $3700 is for master disk, $b700 for slave
+	utils.RunUntilBreakPoint(t, 0xb700, 1, false, "Boot1") // $3700 is for master disk, $b700 for a slave disk
 	utils.RunUntilBreakPoint(t, 0x9d84, 3, false, "Boot2")
 	utils.RunUntilBreakPoint(t, 0xd7d2, 2, false, "JMP to basic interpreter NEWSTT")
 }

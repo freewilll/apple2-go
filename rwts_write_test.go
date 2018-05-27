@@ -72,14 +72,14 @@ func TestDos33RwtsWriteRead(t *testing.T) {
 	writeBytes(start+0x27, []uint8{0xa0, 0x03})                      // LDY #$03
 	writeBytes(start+0x29, []uint8{0x91, 0x00})                      // STA ($00),Y
 	writeBytes(start+0x2b, []uint8{0x20, 0xe3, 0x03})                // JSR $03E3      Relocate pointer to parms
-	writeBytes(start+0x2f, []uint8{0x20, 0xd9, 0x03})                // JSR $03D9      RWTS
-	writeBytes(start+0x32, []uint8{0x00})                            // BRK
+	writeBytes(start+0x2e, []uint8{0x20, 0xd9, 0x03})                // JSR $03D9      RWTS
+	writeBytes(start+0x31, []uint8{0x00})                            // BRK
 
 	cpu.State.PC = uint16(start)
 	utils.RunUntilBreakPoint(t, 0xb944, 128, false, "RWTS RDADDR")
 	utils.RunUntilBreakPoint(t, 0xb82a, 8, false, "RWTS WRITESEC")
 	utils.RunUntilBreakPoint(t, 0xb7ba, 8, false, "RWTS ENTERWTS")
-	utils.RunUntilBreakPoint(t, uint16(start+0x32), 1, false, "Write routine break")
+	utils.RunUntilBreakPoint(t, uint16(start+0x31), 1, false, "Write routine break")
 
 	// Now run some modified code to read the same track/sector
 	writeBytes(start+0x13, []uint8{0xa9, uint8(readBuffer & 0xff)}) // LDA             readBuffer lsb
@@ -93,7 +93,7 @@ func TestDos33RwtsWriteRead(t *testing.T) {
 	writeBytes(start+0x1d, []uint8{0x91, 0x00})                     // STA ($00),Y
 
 	cpu.State.PC = uint16(start)
-	utils.RunUntilBreakPoint(t, uint16(start+0x32), 1, false, "Read routine break")
+	utils.RunUntilBreakPoint(t, uint16(start+0x31), 1, false, "Read routine break")
 
 	// Check the read bytes match the witten ones
 	for i := 0; i < 0x100; i++ {

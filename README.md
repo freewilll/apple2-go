@@ -37,7 +37,7 @@ Download `apple2e.rom` from
 
 Some disk images are used for the tests
 
-* dos33.dsk from e.g. [mirrors.apple2.org.za](https://mirrors.apple2.org.za/ftp.apple.asimov.net/images/masters/DOS3.3SP.dsk)
+* dos33.dsk from e.g. [mirrors.apple2.org.za](https://mirrors.apple2.org.za/ftp.apple.asimov.net/images/masters/DOS33_blank_with_integer_basic.DSK)
 * prodos19.dsk from e.g. [mirrors.apple2.org.za](https://mirrors.apple2.org.za/ftp.apple.asimov.net/images/masters/prodos/ProDOS_1_9.dsk)
 
 ### Running the tests
