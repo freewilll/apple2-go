@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 
-	"mos6502go/cpu"
-	"mos6502go/mmu"
-	"mos6502go/utils"
+	"apple2/cpu"
+	"apple2/mmu"
+	"apple2/utils"
 )
 
 func main() {

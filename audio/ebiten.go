@@ -2,9 +2,10 @@ package audio
 
 import (
 	"errors"
-	"mos6502go/system"
 
 	ebiten_audio "github.com/hajimehoshi/ebiten/audio"
+
+	"apple2/system"
 )
 
 var (

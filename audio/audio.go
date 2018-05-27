@@ -1,7 +1,7 @@
 package audio
 
 import (
-	"mos6502go/system"
+	"apple2/system"
 )
 
 func Click() {

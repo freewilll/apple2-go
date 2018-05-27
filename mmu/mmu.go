@@ -3,7 +3,8 @@ package mmu
 import (
 	"fmt"
 	"io/ioutil"
-	"mos6502go/system"
+
+	"apple2/system"
 )
 
 const RomPath = "apple2e.rom"

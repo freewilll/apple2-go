@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"mos6502go/system"
+	"apple2/system"
 )
 
 const tracksPerDisk = 35

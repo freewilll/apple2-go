@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"mos6502go/mmu"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+
+	"apple2/mmu"
 )
 
 const (

@@ -3,12 +3,13 @@ package cpu_test
 import (
 	"flag"
 	"fmt"
-	"mos6502go/cpu"
-	"mos6502go/keyboard"
-	"mos6502go/mmu"
-	"mos6502go/system"
-	"mos6502go/utils"
 	"testing"
+
+	"apple2/cpu"
+	"apple2/keyboard"
+	"apple2/mmu"
+	"apple2/system"
+	"apple2/utils"
 )
 
 func TestCPU(t *testing.T) {

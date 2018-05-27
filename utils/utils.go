@@ -5,10 +5,11 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"mos6502go/cpu"
-	"mos6502go/system"
 	"os"
 	"testing"
+
+	"apple2/cpu"
+	"apple2/system"
 )
 
 func ReadMemoryFromGzipFile(filename string) (data []byte, err error) {

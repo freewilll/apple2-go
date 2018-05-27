@@ -2,9 +2,10 @@ package cpu
 
 import (
 	"fmt"
-	"mos6502go/mmu"
-	"mos6502go/system"
 	"os"
+
+	"apple2/mmu"
+	"apple2/system"
 )
 
 const (

@@ -3,13 +3,13 @@ package main
 import (
 	"testing"
 
-	"mos6502go/cpu"
-	"mos6502go/disk"
-	"mos6502go/keyboard"
-	"mos6502go/mmu"
-	"mos6502go/system"
-	"mos6502go/utils"
-	"mos6502go/video"
+	"apple2/cpu"
+	"apple2/disk"
+	"apple2/keyboard"
+	"apple2/mmu"
+	"apple2/system"
+	"apple2/utils"
+	"apple2/video"
 )
 
 const rwtsDosDiskImage = "dos33.dsk"

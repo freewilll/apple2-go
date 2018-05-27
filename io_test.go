@@ -5,11 +5,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"mos6502go/cpu"
-	"mos6502go/keyboard"
-	"mos6502go/mmu"
-	"mos6502go/system"
-	"mos6502go/video"
+	"apple2/cpu"
+	"apple2/keyboard"
+	"apple2/mmu"
+	"apple2/system"
+	"apple2/video"
 )
 
 func TestIoBankSwitching(t *testing.T) {

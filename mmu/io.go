@@ -3,10 +3,10 @@ package mmu
 import (
 	"fmt"
 
-	"mos6502go/audio"
-	"mos6502go/disk"
-	"mos6502go/keyboard"
-	"mos6502go/system"
+	"apple2/audio"
+	"apple2/disk"
+	"apple2/keyboard"
+	"apple2/system"
 )
 
 // Adapted from
