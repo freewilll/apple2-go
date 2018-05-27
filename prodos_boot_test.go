@@ -16,7 +16,9 @@ import (
 
 const prodosDiskImage = "prodos19.dsk"
 
-func TestProdosBoot(t *testing.T) {
+// TestProdos19Boot goes through the boot process and asserts that the code ends
+// up in the BASIC interpreter after Prodos has loaded.
+func TestProdos19Boot(t *testing.T) {
 	cpu.InitInstructionDecoder()
 	mmu.InitRAM()
 	mmu.InitApple2eROM()
@@ -40,7 +42,7 @@ func TestProdosBoot(t *testing.T) {
 	utils.RunUntilBreakPoint(t, 0xd000, 1, false, "First call to MLI kernel")
 	utils.RunUntilBreakPoint(t, 0x0800, 2, false, "BI loader")
 	utils.RunUntilBreakPoint(t, 0x2000, 2, false, "BI Relocator")
-	utils.RunUntilBreakPoint(t, 0xbe00, 52, false, "BI Start")
+	utils.RunUntilBreakPoint(t, 0xbe00, 1, false, "BI Start")
 
 	elapsed := float64(time.Since(t0) / time.Millisecond)
 	fmt.Printf("CPU Cycles:    %d\n", system.FrameCycles)

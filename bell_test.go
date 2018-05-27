@@ -5,32 +5,33 @@ import (
 	"testing"
 
 	"github.com/freewilll/apple2/cpu"
-	"github.com/freewilll/apple2/keyboard"
 	"github.com/freewilll/apple2/mmu"
 	"github.com/freewilll/apple2/system"
-	"github.com/freewilll/apple2/video"
 )
 
 func testBellCycles(delay int) {
-	cpu.State.PC = 0x800
-	mmu.WriteMemory(0x800, 0xa9) // LDA #$xx
-	mmu.WriteMemory(0x801, uint8(delay))
-	mmu.WriteMemory(0x802, 0x20) // JSR $fca8
-	mmu.WriteMemory(0x803, 0xa8)
-	mmu.WriteMemory(0x804, 0xfc)
-	mmu.WriteMemory(0x805, 0x00) // Break address
+	// Add some code to $800
+	mmu.WriteMemory(0x800, 0xa9)         // LDA #delay
+	mmu.WriteMemory(0x801, uint8(delay)) //
+	mmu.WriteMemory(0x802, 0x20)         // JSR $fca8 BELL
+	mmu.WriteMemory(0x803, 0xa8)         //
+	mmu.WriteMemory(0x804, 0xfc)         //
+	mmu.WriteMemory(0x805, 0x00)         // BRK
 
+	// Run the code until the BRK instruction and count the cycles
 	system.FrameCycles = 0
 	showInstructions := false
 	breakAddress := uint16(0x805)
 	exitAtBreak := false
 	disableFirmwareWait := false
+	cpu.State.PC = 0x800
 	cpu.Run(showInstructions, &breakAddress, exitAtBreak, disableFirmwareWait, system.CpuFrequency*1000)
 
 	// See http://apple2.org.za/gswv/a2zine/GS.WorldView/Resources/USEFUL.TABLES/WAIT.DELAY.CR.txt
 	expectedCycles := (26 + 27*delay + 5*delay*delay) / 2
 
-	gotCycles := int(system.FrameCycles - 2)
+	gotCycles := int(system.FrameCycles - 2) // Exclude the cycles taken by the LDA
+
 	fmt.Printf("Delay %3d ", delay)
 	if gotCycles == expectedCycles {
 		fmt.Println("OK")
@@ -40,14 +41,15 @@ func testBellCycles(delay int) {
 	}
 }
 
+// TestBell tests the nunber of cycles in the system BELL loop for different
+// values of the accumulator. This test was mainly used to diagnose a bug
+// related to sound frequencies being incorrect due to invalid cycle
+// housekeeping in the CPU branch code.
 func TestBell(t *testing.T) {
 	cpu.InitInstructionDecoder()
 	mmu.InitRAM()
 	mmu.InitApple2eROM()
-	mmu.InitIO()
 	cpu.Init()
-	keyboard.Init()
-	video.Init()
 	system.Init()
 
 	testBellCycles(1)

@@ -11,6 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func assertMemoryConfiguration(t *testing.T, address uint16, upperRamReadOnly bool, upperReadMappedToROM bool, d000Bank int) {
+	mmu.WriteMemory(address, 0x00)
+	assert.Equal(t, upperReadMappedToROM, mmu.UpperReadMappedToROM)
+	assert.Equal(t, d000Bank, mmu.D000Bank)
+}
+
+// TestBankSwitching tests the area starting at $d000 and managed by $c08x.
+// First the initial settings are checked. Then a bunch of assertions on the
+// internal code. Then writes to $c08x.
 func TestBankSwitching(t *testing.T) {
 	cpu.InitInstructionDecoder()
 	mmu.InitRAM()
@@ -79,17 +88,7 @@ func TestBankSwitching(t *testing.T) {
 	assert.Equal(t, uint8(0x6f), mmu.ReadMemory(0xd000)) // read from ROM
 	assert.Equal(t, uint8(0xc3), mmu.ReadMemory(0xffff)) // read from ROM
 
-	testSwitches(t)
-}
-
-func assertMemoryConfiguration(t *testing.T, address uint16, upperRamReadOnly bool, upperReadMappedToROM bool, d000Bank int) {
-	mmu.WriteMemory(address, 0x00)
-	// assert.Equal(t, upperRamReadOnly, mmu.UpperRamReadOnly)
-	assert.Equal(t, upperReadMappedToROM, mmu.UpperReadMappedToROM)
-	assert.Equal(t, d000Bank, mmu.D000Bank)
-}
-
-func testSwitches(t *testing.T) {
+	// Test writes to 0xc08x lead to correct memory configurations
 	assertMemoryConfiguration(t, 0xc080, true, false, 2)
 	assertMemoryConfiguration(t, 0xc081, false, true, 2)
 	assertMemoryConfiguration(t, 0xc082, true, true, 2)

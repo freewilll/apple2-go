@@ -14,12 +14,16 @@ import (
 
 const rwtsDosDiskImage = "dos33.dsk"
 
+// Write a number of bytes to an address
 func writeBytes(address int, data []uint8) {
 	for i := 0; i < len(data); i++ {
 		mmu.WriteMemory(uint16(address)+uint16(i), data[i])
 	}
 }
 
+// TestDos33RwtsWriteRead goes through the boot process and then calls RWTS
+// with a write and read request. Then the result of the read is cheked to make
+// sure it maches the write. This tests the disk image IO code.
 func TestDos33RwtsWriteRead(t *testing.T) {
 	// Test writing and reading a sector using DOS 3.3's RWTS
 	cpu.InitInstructionDecoder()
@@ -75,6 +79,7 @@ func TestDos33RwtsWriteRead(t *testing.T) {
 	writeBytes(start+0x2e, []uint8{0x20, 0xd9, 0x03})                // JSR $03D9      RWTS
 	writeBytes(start+0x31, []uint8{0x00})                            // BRK
 
+	// Run until the RWTS write returns
 	cpu.State.PC = uint16(start)
 	utils.RunUntilBreakPoint(t, 0xb944, 128, false, "RWTS RDADDR")
 	utils.RunUntilBreakPoint(t, 0xb82a, 8, false, "RWTS WRITESEC")
@@ -92,6 +97,7 @@ func TestDos33RwtsWriteRead(t *testing.T) {
 	writeBytes(start+0x1b, []uint8{0xa0, 0x09})                     // LDY #$09
 	writeBytes(start+0x1d, []uint8{0x91, 0x00})                     // STA ($00),Y
 
+	// Run until the RWTS read returns
 	cpu.State.PC = uint16(start)
 	utils.RunUntilBreakPoint(t, uint16(start+0x31), 1, false, "Read routine break")
 

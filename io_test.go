@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestIoBankSwitching tests the switching of the IO memory ROM at $c000-$c7ff
 func TestIoBankSwitching(t *testing.T) {
 	cpu.InitInstructionDecoder()
 	mmu.InitRAM()
