@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 
-	"apple2/cpu"
-	"apple2/mmu"
-	"apple2/utils"
+	"github.com/freewilll/apple2/cpu"
+	"github.com/freewilll/apple2/mmu"
+	"github.com/freewilll/apple2/utils"
 )
 
 func main() {

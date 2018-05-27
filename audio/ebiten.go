@@ -3,9 +3,8 @@ package audio
 import (
 	"errors"
 
+	"github.com/freewilll/apple2/system"
 	ebiten_audio "github.com/hajimehoshi/ebiten/audio"
-
-	"apple2/system"
 )
 
 var (

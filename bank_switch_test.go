@@ -3,13 +3,12 @@ package main
 import (
 	"testing"
 
+	"github.com/freewilll/apple2/cpu"
+	"github.com/freewilll/apple2/keyboard"
+	"github.com/freewilll/apple2/mmu"
+	"github.com/freewilll/apple2/system"
+	"github.com/freewilll/apple2/video"
 	"github.com/stretchr/testify/assert"
-
-	"apple2/cpu"
-	"apple2/keyboard"
-	"apple2/mmu"
-	"apple2/system"
-	"apple2/video"
 )
 
 func TestBankSwitching(t *testing.T) {

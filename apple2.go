@@ -5,16 +5,15 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/freewilll/apple2/audio"
+	"github.com/freewilll/apple2/cpu"
+	"github.com/freewilll/apple2/disk"
+	"github.com/freewilll/apple2/keyboard"
+	"github.com/freewilll/apple2/mmu"
+	"github.com/freewilll/apple2/system"
+	"github.com/freewilll/apple2/utils"
+	"github.com/freewilll/apple2/video"
 	"github.com/hajimehoshi/ebiten"
-
-	"apple2/audio"
-	"apple2/cpu"
-	"apple2/disk"
-	"apple2/keyboard"
-	"apple2/mmu"
-	"apple2/system"
-	"apple2/utils"
-	"apple2/video"
 )
 
 var showInstructions *bool

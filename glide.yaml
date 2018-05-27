@@ -1,0 +1,12 @@
+package: github.com/freewilll/apple2
+import:
+- package: github.com/hajimehoshi/ebiten
+  version: ^1.7.0
+  subpackages:
+  - audio
+  - ebitenutil
+testImport:
+- package: github.com/stretchr/testify
+  version: ^1.2.1
+  subpackages:
+  - assert

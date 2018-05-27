@@ -1,8 +1,6 @@
 package audio
 
-import (
-	"apple2/system"
-)
+import "github.com/freewilll/apple2/system"
 
 func Click() {
 	ForwardToFrameCycle()

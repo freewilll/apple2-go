@@ -8,7 +8,7 @@ import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 
-	"apple2/mmu"
+	"github.com/freewilll/apple2/mmu"
 )
 
 const (
@@ -43,7 +43,7 @@ func Init() {
 	}
 
 	// From
-	// https://mrob.com/pub/xapple2/colors.html
+	// https://mrob.com/pub/xgithub.com/freewilll/apple2/colors.html
 	// https://archive.org/details/IIgs_2523063_Master_Color_Values
 
 	alpha := uint8(0xff)

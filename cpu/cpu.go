@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"apple2/mmu"
-	"apple2/system"
+	"github.com/freewilll/apple2/mmu"
+	"github.com/freewilll/apple2/system"
 )
 
 const (

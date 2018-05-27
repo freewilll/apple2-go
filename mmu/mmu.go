@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"apple2/system"
+	"github.com/freewilll/apple2/system"
 )
 
 const RomPath = "apple2e.rom"

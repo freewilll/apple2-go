@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"apple2/mmu"
+	"github.com/freewilll/apple2/mmu"
 )
 
 func printFlag(p byte, flag uint8, code string) {
