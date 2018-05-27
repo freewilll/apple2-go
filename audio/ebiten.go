@@ -60,6 +60,7 @@ func (s *stream) Close() error {
 	return nil
 }
 
+// InitEbiten initializes the audio sets up the ebiten output stream
 func InitEbiten() {
 	firstAudio = true
 	Mute = false

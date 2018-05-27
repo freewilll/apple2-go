@@ -28,6 +28,7 @@ var State struct {
 	P  uint8
 }
 
+// Init the CPU registers, interrupts and disable testing code
 func Init() {
 	system.RunningTests = false
 	system.RunningFunctionalTests = false
@@ -858,12 +859,13 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 	}
 }
 
+// SetColdStartReset nukes the checkum byte for the reset vector. When this is called, the apple boot firmware will
+// conclude that the reset vector is invalid and do a cold start.
 func SetColdStartReset() {
-	// Nuke the checkum byte for the reset vector. When this is called, the apple boot firmware will
-	// conclude that the reset vector is invalid and do a cold start.
 	mmu.WriteMemory(uint16(0x3f4), uint8(0))
 }
 
+// Reset sets the CPU and memory states so that a next call to cpu.Run() calls the firmware reset code
 func Reset() {
 	mmu.InitROM()
 	mmu.InitRAM()

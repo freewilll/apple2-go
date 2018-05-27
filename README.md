@@ -38,6 +38,7 @@ Download `apple2e.rom` from
 * ctrl-alt-R reset
 * ctrl-alt-M mute
 * ctrl-alt-C caps lock
+* ctrl-alt-F show FPS
 
 ## Running the tests
 ### Setup

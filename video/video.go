@@ -18,23 +18,28 @@ const (
 )
 
 var (
-	charMap      *ebiten.Image
-	flashCounter int
-	flashOn      bool
-	loresSquares [16]*ebiten.Image
-	ShowFPS      bool
+	charMap      *ebiten.Image     // Character map for text screen
+	flashCounter int               // Counter used for flashing characters on the text screen
+	flashOn      bool              // Are we currently flashing?
+	loresSquares [16]*ebiten.Image // Colored blocks for lores rendering
+	ShowFPS      bool              // Show FPS in corner?
 )
 
-func Init() {
-	var err error
+// initTextCharMap initializes the text character map
+func initTextCharMap() {
 	// The character map pr-latin1.png was downloaded from
 	// http://www.kreativekorp.com/software/fonts/apple2.shtml
 
+	var err error
 	charMap, _, err = ebitenutil.NewImageFromFile("video/pr-latin1.png", ebiten.FilterNearest)
 	if err != nil {
 		panic(err)
 	}
+}
 
+// initLoresSquares creates 16 colored squares for the lores renderer
+func initLoresSquares() {
+	var err error
 	for i := 0; i < 16; i++ {
 		loresSquares[i], err = ebiten.NewImage(7, 4, ebiten.FilterNearest)
 		if err != nil {
@@ -45,7 +50,6 @@ func Init() {
 	// From
 	// https://mrob.com/pub/xgithub.com/freewilll/apple2/colors.html
 	// https://archive.org/details/IIgs_2523063_Master_Color_Values
-
 	alpha := uint8(0xff)
 	loresSquares[0x00].Fill(color.NRGBA{0, 0, 0, alpha})
 	loresSquares[0x01].Fill(color.NRGBA{221, 0, 51, alpha})
@@ -63,20 +67,31 @@ func Init() {
 	loresSquares[0x0D].Fill(color.NRGBA{255, 255, 0, alpha})
 	loresSquares[0x0E].Fill(color.NRGBA{68, 255, 153, alpha})
 	loresSquares[0x0F].Fill(color.NRGBA{255, 255, 255, alpha})
-
-	ShowFPS = false
 }
 
+// Init the video data structures used for rendering
+func Init() {
+	ShowFPS = false
+
+	initTextCharMap()
+	initLoresSquares()
+}
+
+// drawText draws a single text character at x, y. The characters are either normal, inverted or flashing
 func drawText(screen *ebiten.Image, x int, y int, value uint8) error {
+	// Determine if the character is inverted
 	inverted := false
 
 	if (value & 0xc0) == 0 {
+		// Inverted
 		inverted = true
 	} else if (value & 0x80) == 0 {
+		// Flashing
 		value = value & 0x3f
 		inverted = flashOn
 	}
 
+	// Convert the value to a index for the charMap
 	if !inverted {
 		value = value & 0x7f
 	}
@@ -89,6 +104,7 @@ func drawText(screen *ebiten.Image, x int, y int, value uint8) error {
 	op.GeoM.Scale(ScreenSizeFactor, ScreenSizeFactor)
 	op.GeoM.Translate(ScreenSizeFactor*7*float64(x), ScreenSizeFactor*8*float64(y))
 
+	// Grab the image from the font image
 	fontRow := value % 16
 	fontCol := value / 16
 	var fontX = (int)(15 + fontCol*12)
@@ -96,19 +112,24 @@ func drawText(screen *ebiten.Image, x int, y int, value uint8) error {
 	r := image.Rect(fontX, fontY, fontX+7, fontY+8)
 	op.SourceRect = &r
 
+	// The charMap is already inverted. Invert it back if we ourselves aren't inverted.
 	if !inverted {
 		op.ColorM.Scale(-1, -1, -1, 1)
 		op.ColorM.Translate(1, 1, 1, 0)
 	}
 
+	// Make it look greenish
 	op.ColorM.Scale(0.20, 0.75, 0.20, 1)
 
 	return screen.DrawImage(charMap, op)
 }
 
+// drawLores draws two colored lores squares at the equivalent text location x,y.
 func drawLores(screen *ebiten.Image, x int, y int, value uint8) error {
+	// Convert the 8 bit value to two 4 bit values
 	var values [2]uint8 = [2]uint8{value & 0xf, value >> 4}
 
+	// Render top & bottom squares
 	for i := 0; i < 2; i++ {
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Scale(ScreenSizeFactor, ScreenSizeFactor)
@@ -121,10 +142,12 @@ func drawLores(screen *ebiten.Image, x int, y int, value uint8) error {
 	return nil
 }
 
+// drawTextBlock draws a number of lines of text from start to end
 func drawTextBlock(screen *ebiten.Image, start int, end int) error {
 	for y := start; y < end; y++ {
 		base := 128*(y%8) + 40*(y/8)
 
+		// Flip to the 2nd page if so toggled
 		if mmu.Page2 {
 			base += 0x400
 		}
@@ -132,7 +155,6 @@ func drawTextBlock(screen *ebiten.Image, start int, end int) error {
 		for x := 0; x < 40; x++ {
 			offset := textVideoMemory + base + x
 			value := mmu.ReadPageTable[offset>>8][offset&0xff]
-
 			if err := drawText(screen, x, y, value); err != nil {
 				return err
 			}
@@ -142,10 +164,12 @@ func drawTextBlock(screen *ebiten.Image, start int, end int) error {
 	return nil
 }
 
+// drawTextBlock draws a number of lores lines from the equivalent text start to end line
 func drawLoresBlock(screen *ebiten.Image, start int, end int) error {
 	for y := start; y < end; y++ {
 		base := 128*(y%8) + 40*(y/8)
 
+		// Flip to the 2nd page if so toggled
 		if mmu.Page2 {
 			base += 0x400
 		}
@@ -162,6 +186,7 @@ func drawLoresBlock(screen *ebiten.Image, start int, end int) error {
 	return nil
 }
 
+// drawTextOrLoresScreen draws a text and/or lores screen depending on the VideoState
 func drawTextOrLoresScreen(screen *ebiten.Image) error {
 	topHalfIsLowRes := !mmu.VideoState.TextMode
 	bottomHalfIsLowRes := !mmu.VideoState.TextMode && !mmu.VideoState.Mixed
@@ -181,6 +206,7 @@ func drawTextOrLoresScreen(screen *ebiten.Image) error {
 	return nil
 }
 
+// drawHiresScreen draws an entire hires screen. If it's in mixed mode, the lower end is drawn in text.
 func drawHiresScreen(screen *ebiten.Image) error {
 	if ScreenSizeFactor != 1 {
 		panic("Hires mode for ScreenSizeFactor != 1 not implemented")
@@ -188,6 +214,7 @@ func drawHiresScreen(screen *ebiten.Image) error {
 
 	pixels := make([]byte, 280*192*4)
 
+	// Loop over all hires lines
 	for y := 0; y < 192; y++ {
 		if mmu.VideoState.Mixed && y >= 160 {
 			continue
@@ -196,10 +223,12 @@ func drawHiresScreen(screen *ebiten.Image) error {
 		// Woz is a genius
 		yOffset := 0x2000 - (0x3d8)*(y>>6) + 0x80*(y>>3) + 0x400*(y&0x7)
 
+		// Flip to the 2nd page if so toggled
 		if mmu.Page2 {
 			yOffset += 0x2000
 		}
 
+		// For each byte, flip the 7 bits and write it to the pixels array
 		for x := 0; x < 40; x++ {
 			offset := yOffset + x
 			value := mmu.ReadPageTable[offset>>8][offset&0xff]
@@ -218,14 +247,18 @@ func drawHiresScreen(screen *ebiten.Image) error {
 		}
 	}
 
+	// The hires pixels are read, flush them to the screen
 	screen.ReplacePixels(pixels)
 
+	// Draw text bit at the bottom
 	if mmu.VideoState.Mixed {
 		drawTextBlock(screen, 20, 24)
 	}
+
 	return nil
 }
 
+// DrawScreen draws a text, lores, hires or combination screen
 func DrawScreen(screen *ebiten.Image) error {
 	flashCounter--
 	if flashCounter < 0 {

@@ -29,6 +29,7 @@ var DriveState struct {
 	Q7           bool
 }
 
+// Init initializes the system-wide state
 func Init() {
 	Cycles = 0
 	AudioChannel = make(chan int16, AudioSampleRate*4) // 1 second

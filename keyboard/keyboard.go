@@ -13,6 +13,7 @@ var strobe uint8
 var previousKeysPressed map[uint8]bool
 var capsLock bool
 
+// Init the keyboard state and ebiten translation tables
 func Init() {
 	keyBoardData = 0
 	strobe = 0
