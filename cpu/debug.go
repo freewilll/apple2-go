@@ -42,10 +42,10 @@ func printInstruction(instruction string, showRegisters bool) {
 
 func PrintInstruction(showRegisters bool) {
 	opcodeValue := mmu.ReadPageTable[(State.PC)>>8][(State.PC)&0xff]
-	opcode := OpCodes[opcodeValue]
-	mnemonic := opcode.Mnemonic
-	size := opcode.AddressingMode.OperandSize
-	stringFormat := opcode.AddressingMode.StringFormat
+	opcode := opCodes[opcodeValue]
+	mnemonic := opcode.mnemonic
+	size := opcode.addressingMode.operandSize
+	stringFormat := opcode.addressingMode.stringFormat
 
 	var value uint16
 	if size == 0 {
@@ -56,7 +56,7 @@ func PrintInstruction(showRegisters bool) {
 	var opcodes string
 	var suffix string
 
-	if opcode.AddressingMode.Mode == AmRelative {
+	if opcode.addressingMode.mode == amRelative {
 		value = uint16(mmu.ReadPageTable[(State.PC+1)>>8][(State.PC+1)&0xff])
 		var relativeAddress uint16
 		if (value & 0x80) == 0 {
@@ -84,8 +84,8 @@ func PrintInstruction(showRegisters bool) {
 
 func AdvanceInstruction() {
 	opcodeValue := mmu.ReadPageTable[(State.PC)>>8][(State.PC)&0xff]
-	opcode := OpCodes[opcodeValue]
-	size := opcode.AddressingMode.OperandSize + 1
+	opcode := opCodes[opcodeValue]
+	size := opcode.addressingMode.operandSize + 1
 	State.PC += uint16(size)
 }
 

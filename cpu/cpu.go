@@ -153,26 +153,26 @@ func branch(instructionName string, doBranch bool) {
 
 func getAddressFromAddressMode(addressMode byte) (result uint16, pageBoundaryCrossed bool) {
 	switch addressMode {
-	case AmZeroPage:
+	case amZeroPage:
 		result = uint16(mmu.ReadMemory(State.PC + 1))
-	case AmZeroPageX:
+	case amZeroPageX:
 		result = (uint16(mmu.ReadMemory(State.PC+1)) + uint16(State.X)) & 0xff
-	case AmZeroPageY:
+	case amZeroPageY:
 		result = (uint16(mmu.ReadMemory(State.PC+1)) + uint16(State.Y)) & 0xff
-	case AmAbsolute:
+	case amAbsolute:
 		result = uint16(mmu.ReadMemory(State.PC+1)) + uint16(mmu.ReadMemory(State.PC+2))<<8
-	case AmAbsoluteX:
+	case amAbsoluteX:
 		value := uint16(mmu.ReadMemory(State.PC+1)) + uint16(mmu.ReadMemory(State.PC+2))<<8
 		pageBoundaryCrossed = (value & 0xff00) != ((value + uint16(State.X)) & 0xff00)
 		result = value + uint16(State.X)
-	case AmAbsoluteY:
+	case amAbsoluteY:
 		value := uint16(mmu.ReadMemory(State.PC+1)) + uint16(mmu.ReadMemory(State.PC+2))<<8
 		pageBoundaryCrossed = (value & 0xff00) != ((value + uint16(State.Y)) & 0xff00)
 		result = value + uint16(State.Y)
-	case AmIndirectX:
+	case amIndirectX:
 		zeroPageAddress := (mmu.ReadMemory(State.PC+1) + State.X) & 0xff
 		result = uint16(mmu.ReadMemory(uint16(zeroPageAddress))) + uint16(mmu.ReadMemory(uint16(zeroPageAddress)+1))<<8
-	case AmIndirectY:
+	case amIndirectY:
 		address := uint16(mmu.ReadMemory(State.PC + 1))
 		lsb := uint16(mmu.ReadMemory(address))
 		msb := uint16(mmu.ReadMemory(address + 1))
@@ -188,45 +188,45 @@ func getAddressFromAddressMode(addressMode byte) (result uint16, pageBoundaryCro
 
 func readMemoryWithAddressMode(addressMode byte) (result uint8, pageBoundaryCrossed bool) {
 	switch addressMode {
-	case AmImmediate:
+	case amImmediate:
 		result = mmu.ReadMemory(State.PC + 1)
 		State.PC += 2
-	case AmZeroPage:
+	case amZeroPage:
 		var address uint16
 		address, pageBoundaryCrossed = getAddressFromAddressMode(addressMode)
 		result = mmu.ReadMemory(address)
 		State.PC += 2
-	case AmZeroPageX:
+	case amZeroPageX:
 		var address uint16
 		address, pageBoundaryCrossed = getAddressFromAddressMode(addressMode)
 		result = mmu.ReadMemory(address)
 		State.PC += 2
-	case AmZeroPageY:
+	case amZeroPageY:
 		var address uint16
 		address, pageBoundaryCrossed = getAddressFromAddressMode(addressMode)
 		result = mmu.ReadMemory(address)
 		State.PC += 2
-	case AmAbsolute:
+	case amAbsolute:
 		var address uint16
 		address, pageBoundaryCrossed = getAddressFromAddressMode(addressMode)
 		result = mmu.ReadMemory(address)
 		State.PC += 3
-	case AmAbsoluteX:
+	case amAbsoluteX:
 		var address uint16
 		address, pageBoundaryCrossed = getAddressFromAddressMode(addressMode)
 		result = mmu.ReadMemory(address)
 		State.PC += 3
-	case AmAbsoluteY:
+	case amAbsoluteY:
 		var address uint16
 		address, pageBoundaryCrossed = getAddressFromAddressMode(addressMode)
 		result = mmu.ReadMemory(address)
 		State.PC += 3
-	case AmIndirectX:
+	case amIndirectX:
 		var address uint16
 		address, pageBoundaryCrossed = getAddressFromAddressMode(addressMode)
 		result = mmu.ReadMemory(address)
 		State.PC += 2
-	case AmIndirectY:
+	case amIndirectY:
 		var address uint16
 		address, pageBoundaryCrossed = getAddressFromAddressMode(addressMode)
 		result = mmu.ReadMemory(address)
@@ -245,31 +245,31 @@ func store(regValue uint8, addressMode byte) {
 	mmu.WriteMemory(address, regValue)
 
 	switch addressMode {
-	case AmZeroPage:
+	case amZeroPage:
 		State.PC += 2
 		system.FrameCycles += 3
-	case AmZeroPageX:
+	case amZeroPageX:
 		State.PC += 2
 		system.FrameCycles += 4
-	case AmZeroPageY:
+	case amZeroPageY:
 		State.PC += 2
 		system.FrameCycles += 4
-	case AmAbsolute:
+	case amAbsolute:
 		State.PC += 3
 		system.FrameCycles += 4
-	case AmAbsoluteX:
-		State.PC += 3
-		system.FrameCycles += 5
-	case AmAbsoluteY:
+	case amAbsoluteX:
 		State.PC += 3
 		system.FrameCycles += 5
-	case AmIndirect:
+	case amAbsoluteY:
+		State.PC += 3
+		system.FrameCycles += 5
+	case amIndirect:
 		State.PC += 2
 		system.FrameCycles += 6
-	case AmIndirectX:
+	case amIndirectX:
 		State.PC += 2
 		system.FrameCycles += 6
-	case AmIndirectY:
+	case amIndirectY:
 		State.PC += 2
 		system.FrameCycles += 6
 	default:
@@ -285,23 +285,23 @@ func advanceCyclesForAcculumatorOperation(addressMode byte, pageBoundaryCrossed 
 	}
 
 	switch addressMode {
-	case AmImmediate:
+	case amImmediate:
 		system.FrameCycles += 2
-	case AmZeroPage:
+	case amZeroPage:
 		system.FrameCycles += 3
-	case AmZeroPageX:
+	case amZeroPageX:
 		system.FrameCycles += 4
-	case AmZeroPageY:
+	case amZeroPageY:
 		system.FrameCycles += 4
-	case AmAbsolute:
+	case amAbsolute:
 		system.FrameCycles += 4
-	case AmAbsoluteX:
+	case amAbsoluteX:
 		system.FrameCycles += 4 + extraCycle
-	case AmAbsoluteY:
+	case amAbsoluteY:
 		system.FrameCycles += 4 + extraCycle
-	case AmIndirectX:
+	case amIndirectX:
 		system.FrameCycles += 6
-	case AmIndirectY:
+	case amIndirectY:
 		system.FrameCycles += 5 + extraCycle
 	default:
 		panic(fmt.Sprintf("Unknown address mode %d in advanceCyclesForAcculumatorOperation()", addressMode))
@@ -441,14 +441,14 @@ func bit(address uint16) {
 
 // Read the address/value for an ASL, LSR, ROR, ROL
 func preProcessShift(addressMode byte) (address uint16, value uint8) {
-	if addressMode == AmAccumulator {
+	if addressMode == amAccumulator {
 		value = State.A
 	} else {
 		address, _ = getAddressFromAddressMode(addressMode)
 		value = mmu.ReadMemory(address)
 	}
 
-	if addressMode == AmAccumulator {
+	if addressMode == amAccumulator {
 		value = State.A
 	} else {
 		address, _ = getAddressFromAddressMode(addressMode)
@@ -461,23 +461,23 @@ func preProcessShift(addressMode byte) (address uint16, value uint8) {
 // Store the result of a ASL, LSR, ROR, ROL and advance PC and system.FrameCycles
 func postProcessShift(addressMode byte, address uint16, value uint8) {
 	switch addressMode {
-	case AmAccumulator:
+	case amAccumulator:
 		State.A = value
 		State.PC += 1
 		system.FrameCycles += 2
-	case AmZeroPage:
+	case amZeroPage:
 		mmu.WriteMemory(address, value)
 		State.PC += 2
 		system.FrameCycles += 5
-	case AmZeroPageX:
+	case amZeroPageX:
 		mmu.WriteMemory(address, value)
 		State.PC += 2
 		system.FrameCycles += 6
-	case AmAbsolute:
+	case amAbsolute:
 		mmu.WriteMemory(address, value)
 		State.PC += 3
 		system.FrameCycles += 6
-	case AmAbsoluteX:
+	case amAbsoluteX:
 		mmu.WriteMemory(address, value)
 		State.PC += 3
 		system.FrameCycles += 7
@@ -488,16 +488,16 @@ func postProcessShift(addressMode byte, address uint16, value uint8) {
 
 func postProcessIncDec(addressMode byte) {
 	switch addressMode {
-	case AmZeroPage:
+	case amZeroPage:
 		State.PC += 2
 		system.FrameCycles += 5
-	case AmZeroPageX:
+	case amZeroPageX:
 		State.PC += 2
 		system.FrameCycles += 6
-	case AmAbsolute:
+	case amAbsolute:
 		State.PC += 3
 		system.FrameCycles += 6
-	case AmAbsoluteX:
+	case amAbsoluteX:
 		State.PC += 3
 		system.FrameCycles += 7
 	default:
@@ -567,7 +567,7 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 		}
 
 		opcode := mmu.ReadMemory(State.PC)
-		addressMode := OpCodes[opcode].AddressingMode.Mode
+		addressMode := opCodes[opcode].addressingMode.mode
 
 		if breakAddress != nil && State.PC == *breakAddress {
 			if exitAtBreak {

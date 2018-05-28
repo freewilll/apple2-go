@@ -1,315 +1,317 @@
 package cpu
 
+// Address mode constants
 const (
-	AmNone        byte = 1 + iota
-	AmAccumulator      //
-	AmImplied          //
-	AmRelative         //
-	AmExpansion        //
-	AmImmediate        // #$00
-	AmZeroPage         // $00
-	AmZeroPageX        // $00,X
-	AmZeroPageY        // $00,Y
-	AmAbsolute         // $0000
-	AmAbsoluteX        // $0000,X
-	AmAbsoluteY        // $0000,Y
-	AmIndirect         // ($0000)
-	AmIndirectX        // ($00,X)
-	AmIndirectY        // ($00),Y
+	amNone        byte = 1 + iota
+	amAccumulator      //
+	amImplied          //
+	amRelative         //
+	amExpansion        //
+	amImmediate        // #$00
+	amZeroPage         // $00
+	amZeroPageX        // $00,X
+	amZeroPageY        // $00,Y
+	amAbsolute         // $0000
+	amAbsoluteX        // $0000,X
+	amAbsoluteY        // $0000,Y
+	amIndirect         // ($0000)
+	amIndirectX        // ($00,X)
+	amIndirectY        // ($00),Y
 )
 
-type AddressingMode struct {
-	Mode         byte
-	OperandSize  byte
-	StringFormat string
+// addressingMode is a struct that describes a single addressing mode
+type addressingMode struct {
+	mode         byte   // One of the Am* constants
+	operandSize  byte   // Number of bytes
+	stringFormat string // Format string for the disassembler
 }
 
-type OpCode struct {
-	Mnemonic       string
-	AddressingMode AddressingMode
+type opCode struct {
+	mnemonic       string         // 3-letter mnemonic, e.g. LDA, STA
+	addressingMode addressingMode // Addressing mode
 }
 
-var AddressingModes map[byte]AddressingMode
-var OpCodes [0x100]OpCode
+var addressingModes map[byte]addressingMode
+var opCodes [0x100]opCode
 
-func InitAddressingModes() {
-	AddressingModes = make(map[byte]AddressingMode)
-	AddressingModes[AmAccumulator] = AddressingMode{Mode: AmAccumulator, OperandSize: 0, StringFormat: ""}
-	AddressingModes[AmImplied] = AddressingMode{Mode: AmImplied, OperandSize: 0, StringFormat: ""}
-	AddressingModes[AmRelative] = AddressingMode{Mode: AmRelative, OperandSize: 1, StringFormat: "$%04x"}
-	AddressingModes[AmExpansion] = AddressingMode{Mode: AmExpansion, OperandSize: 0, StringFormat: ""}
-	AddressingModes[AmImmediate] = AddressingMode{Mode: AmImmediate, OperandSize: 1, StringFormat: "#$%02x"}
-	AddressingModes[AmZeroPage] = AddressingMode{Mode: AmZeroPage, OperandSize: 1, StringFormat: "$%02x"}
-	AddressingModes[AmZeroPageX] = AddressingMode{Mode: AmZeroPageX, OperandSize: 1, StringFormat: "$%02x,X"}
-	AddressingModes[AmZeroPageY] = AddressingMode{Mode: AmZeroPageY, OperandSize: 1, StringFormat: "$%02x,Y"}
-	AddressingModes[AmAbsolute] = AddressingMode{Mode: AmAbsolute, OperandSize: 2, StringFormat: "$%04x"}
-	AddressingModes[AmAbsoluteX] = AddressingMode{Mode: AmAbsoluteX, OperandSize: 2, StringFormat: "$%04x,X"}
-	AddressingModes[AmAbsoluteY] = AddressingMode{Mode: AmAbsoluteY, OperandSize: 2, StringFormat: "$%04x,Y"}
-	AddressingModes[AmIndirect] = AddressingMode{Mode: AmIndirect, OperandSize: 2, StringFormat: "($%04x)"}
-	AddressingModes[AmIndirectX] = AddressingMode{Mode: AmIndirectX, OperandSize: 1, StringFormat: "($%02x,X)"}
-	AddressingModes[AmIndirectY] = AddressingMode{Mode: AmIndirectY, OperandSize: 1, StringFormat: "($%02x),Y"}
+func initAddressingModes() {
+	addressingModes = make(map[byte]addressingMode)
+	addressingModes[amAccumulator] = addressingMode{mode: amAccumulator, operandSize: 0, stringFormat: ""}
+	addressingModes[amImplied] = addressingMode{mode: amImplied, operandSize: 0, stringFormat: ""}
+	addressingModes[amRelative] = addressingMode{mode: amRelative, operandSize: 1, stringFormat: "$%04x"}
+	addressingModes[amExpansion] = addressingMode{mode: amExpansion, operandSize: 0, stringFormat: ""}
+	addressingModes[amImmediate] = addressingMode{mode: amImmediate, operandSize: 1, stringFormat: "#$%02x"}
+	addressingModes[amZeroPage] = addressingMode{mode: amZeroPage, operandSize: 1, stringFormat: "$%02x"}
+	addressingModes[amZeroPageX] = addressingMode{mode: amZeroPageX, operandSize: 1, stringFormat: "$%02x,X"}
+	addressingModes[amZeroPageY] = addressingMode{mode: amZeroPageY, operandSize: 1, stringFormat: "$%02x,Y"}
+	addressingModes[amAbsolute] = addressingMode{mode: amAbsolute, operandSize: 2, stringFormat: "$%04x"}
+	addressingModes[amAbsoluteX] = addressingMode{mode: amAbsoluteX, operandSize: 2, stringFormat: "$%04x,X"}
+	addressingModes[amAbsoluteY] = addressingMode{mode: amAbsoluteY, operandSize: 2, stringFormat: "$%04x,Y"}
+	addressingModes[amIndirect] = addressingMode{mode: amIndirect, operandSize: 2, stringFormat: "($%04x)"}
+	addressingModes[amIndirectX] = addressingMode{mode: amIndirectX, operandSize: 1, stringFormat: "($%02x,X)"}
+	addressingModes[amIndirectY] = addressingMode{mode: amIndirectY, operandSize: 1, stringFormat: "($%02x),Y"}
 }
 
-func InitOpCodes() {
-	OpCodes[0x00] = OpCode{Mnemonic: "BRK", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0x01] = OpCode{Mnemonic: "ORA", AddressingMode: AddressingModes[AmIndirectX]}
-	OpCodes[0x02] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x03] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x04] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x05] = OpCode{Mnemonic: "ORA", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0x06] = OpCode{Mnemonic: "ASL", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0x07] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x08] = OpCode{Mnemonic: "PHP", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0x09] = OpCode{Mnemonic: "ORA", AddressingMode: AddressingModes[AmImmediate]}
-	OpCodes[0x0A] = OpCode{Mnemonic: "ASL", AddressingMode: AddressingModes[AmAccumulator]}
-	OpCodes[0x0B] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x0C] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x0D] = OpCode{Mnemonic: "ORA", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0x0E] = OpCode{Mnemonic: "ASL", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0x0F] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x10] = OpCode{Mnemonic: "BPL", AddressingMode: AddressingModes[AmRelative]}
-	OpCodes[0x11] = OpCode{Mnemonic: "ORA", AddressingMode: AddressingModes[AmIndirectY]}
-	OpCodes[0x12] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x13] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x14] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x15] = OpCode{Mnemonic: "ORA", AddressingMode: AddressingModes[AmZeroPageX]}
-	OpCodes[0x16] = OpCode{Mnemonic: "ASL", AddressingMode: AddressingModes[AmZeroPageX]}
-	OpCodes[0x17] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x18] = OpCode{Mnemonic: "CLC", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0x19] = OpCode{Mnemonic: "ORA", AddressingMode: AddressingModes[AmAbsoluteY]}
-	OpCodes[0x1A] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x1B] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x1C] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x1D] = OpCode{Mnemonic: "ORA", AddressingMode: AddressingModes[AmAbsoluteX]}
-	OpCodes[0x1E] = OpCode{Mnemonic: "ASL", AddressingMode: AddressingModes[AmAbsoluteX]}
-	OpCodes[0x1F] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x20] = OpCode{Mnemonic: "JSR", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0x21] = OpCode{Mnemonic: "AND", AddressingMode: AddressingModes[AmIndirectX]}
-	OpCodes[0x22] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x23] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x24] = OpCode{Mnemonic: "BIT", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0x25] = OpCode{Mnemonic: "AND", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0x26] = OpCode{Mnemonic: "ROL", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0x27] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x28] = OpCode{Mnemonic: "PLP", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0x29] = OpCode{Mnemonic: "AND", AddressingMode: AddressingModes[AmImmediate]}
-	OpCodes[0x2A] = OpCode{Mnemonic: "ROL", AddressingMode: AddressingModes[AmAccumulator]}
-	OpCodes[0x2B] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x2C] = OpCode{Mnemonic: "BIT", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0x2D] = OpCode{Mnemonic: "AND", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0x2E] = OpCode{Mnemonic: "ROL", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0x2F] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x30] = OpCode{Mnemonic: "BMI", AddressingMode: AddressingModes[AmRelative]}
-	OpCodes[0x31] = OpCode{Mnemonic: "AND", AddressingMode: AddressingModes[AmIndirectY]}
-	OpCodes[0x32] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x33] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x34] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x35] = OpCode{Mnemonic: "AND", AddressingMode: AddressingModes[AmZeroPageX]}
-	OpCodes[0x36] = OpCode{Mnemonic: "ROL", AddressingMode: AddressingModes[AmZeroPageX]}
-	OpCodes[0x37] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x38] = OpCode{Mnemonic: "SEC", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0x39] = OpCode{Mnemonic: "AND", AddressingMode: AddressingModes[AmAbsoluteY]}
-	OpCodes[0x3A] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x3B] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x3C] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x3D] = OpCode{Mnemonic: "AND", AddressingMode: AddressingModes[AmAbsoluteX]}
-	OpCodes[0x3E] = OpCode{Mnemonic: "ROL", AddressingMode: AddressingModes[AmAbsoluteX]}
-	OpCodes[0x3F] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x40] = OpCode{Mnemonic: "RTI", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0x41] = OpCode{Mnemonic: "EOR", AddressingMode: AddressingModes[AmIndirectX]}
-	OpCodes[0x42] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x43] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x44] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x45] = OpCode{Mnemonic: "EOR", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0x46] = OpCode{Mnemonic: "LSR", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0x47] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x48] = OpCode{Mnemonic: "PHA", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0x49] = OpCode{Mnemonic: "EOR", AddressingMode: AddressingModes[AmImmediate]}
-	OpCodes[0x4A] = OpCode{Mnemonic: "LSR", AddressingMode: AddressingModes[AmAccumulator]}
-	OpCodes[0x4B] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x4C] = OpCode{Mnemonic: "JMP", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0x4D] = OpCode{Mnemonic: "EOR", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0x4E] = OpCode{Mnemonic: "LSR", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0x4F] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x50] = OpCode{Mnemonic: "BVC", AddressingMode: AddressingModes[AmRelative]}
-	OpCodes[0x51] = OpCode{Mnemonic: "EOR", AddressingMode: AddressingModes[AmIndirectY]}
-	OpCodes[0x52] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x53] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x54] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x55] = OpCode{Mnemonic: "EOR", AddressingMode: AddressingModes[AmZeroPageX]}
-	OpCodes[0x56] = OpCode{Mnemonic: "LSR", AddressingMode: AddressingModes[AmZeroPageX]}
-	OpCodes[0x57] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x58] = OpCode{Mnemonic: "CLI", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0x59] = OpCode{Mnemonic: "EOR", AddressingMode: AddressingModes[AmAbsoluteY]}
-	OpCodes[0x5A] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x5B] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x5C] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x5D] = OpCode{Mnemonic: "EOR", AddressingMode: AddressingModes[AmAbsoluteX]}
-	OpCodes[0x5E] = OpCode{Mnemonic: "LSR", AddressingMode: AddressingModes[AmAbsoluteX]}
-	OpCodes[0x5F] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x60] = OpCode{Mnemonic: "RTS", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0x61] = OpCode{Mnemonic: "ADC", AddressingMode: AddressingModes[AmIndirectX]}
-	OpCodes[0x62] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x63] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x64] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x65] = OpCode{Mnemonic: "ADC", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0x66] = OpCode{Mnemonic: "ROR", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0x67] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x68] = OpCode{Mnemonic: "PLA", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0x69] = OpCode{Mnemonic: "ADC", AddressingMode: AddressingModes[AmImmediate]}
-	OpCodes[0x6A] = OpCode{Mnemonic: "ROR", AddressingMode: AddressingModes[AmAccumulator]}
-	OpCodes[0x6B] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x6C] = OpCode{Mnemonic: "JMP", AddressingMode: AddressingModes[AmIndirect]}
-	OpCodes[0x6D] = OpCode{Mnemonic: "ADC", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0x6E] = OpCode{Mnemonic: "ROR", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0x6F] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x70] = OpCode{Mnemonic: "BVS", AddressingMode: AddressingModes[AmRelative]}
-	OpCodes[0x71] = OpCode{Mnemonic: "ADC", AddressingMode: AddressingModes[AmIndirectY]}
-	OpCodes[0x72] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x73] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x74] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x75] = OpCode{Mnemonic: "ADC", AddressingMode: AddressingModes[AmZeroPageX]}
-	OpCodes[0x76] = OpCode{Mnemonic: "ROR", AddressingMode: AddressingModes[AmZeroPageX]}
-	OpCodes[0x77] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x78] = OpCode{Mnemonic: "SEI", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0x79] = OpCode{Mnemonic: "ADC", AddressingMode: AddressingModes[AmAbsoluteY]}
-	OpCodes[0x7A] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x7B] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x7C] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x7D] = OpCode{Mnemonic: "ADC", AddressingMode: AddressingModes[AmAbsoluteX]}
-	OpCodes[0x7E] = OpCode{Mnemonic: "ROR", AddressingMode: AddressingModes[AmAbsoluteX]}
-	OpCodes[0x7F] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x80] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x81] = OpCode{Mnemonic: "STA", AddressingMode: AddressingModes[AmIndirectX]}
-	OpCodes[0x82] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x83] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x84] = OpCode{Mnemonic: "STY", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0x85] = OpCode{Mnemonic: "STA", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0x86] = OpCode{Mnemonic: "STX", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0x87] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x88] = OpCode{Mnemonic: "DEY", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0x89] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x8A] = OpCode{Mnemonic: "TXA", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0x8B] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x8C] = OpCode{Mnemonic: "STY", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0x8D] = OpCode{Mnemonic: "STA", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0x8E] = OpCode{Mnemonic: "STX", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0x8F] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x90] = OpCode{Mnemonic: "BCC", AddressingMode: AddressingModes[AmRelative]}
-	OpCodes[0x91] = OpCode{Mnemonic: "STA", AddressingMode: AddressingModes[AmIndirectY]}
-	OpCodes[0x92] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x93] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x94] = OpCode{Mnemonic: "STY", AddressingMode: AddressingModes[AmZeroPageX]}
-	OpCodes[0x95] = OpCode{Mnemonic: "STA", AddressingMode: AddressingModes[AmZeroPageX]}
-	OpCodes[0x96] = OpCode{Mnemonic: "STX", AddressingMode: AddressingModes[AmZeroPageY]}
-	OpCodes[0x97] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x98] = OpCode{Mnemonic: "TYA", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0x99] = OpCode{Mnemonic: "STA", AddressingMode: AddressingModes[AmAbsoluteY]}
-	OpCodes[0x9A] = OpCode{Mnemonic: "TXS", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0x9B] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x9C] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x9D] = OpCode{Mnemonic: "STA", AddressingMode: AddressingModes[AmAbsoluteX]}
-	OpCodes[0x9E] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0x9F] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xA0] = OpCode{Mnemonic: "LDY", AddressingMode: AddressingModes[AmImmediate]}
-	OpCodes[0xA1] = OpCode{Mnemonic: "LDA", AddressingMode: AddressingModes[AmIndirectX]}
-	OpCodes[0xA2] = OpCode{Mnemonic: "LDX", AddressingMode: AddressingModes[AmImmediate]}
-	OpCodes[0xA3] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xA4] = OpCode{Mnemonic: "LDY", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0xA5] = OpCode{Mnemonic: "LDA", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0xA6] = OpCode{Mnemonic: "LDX", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0xA7] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xA8] = OpCode{Mnemonic: "TAY", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0xA9] = OpCode{Mnemonic: "LDA", AddressingMode: AddressingModes[AmImmediate]}
-	OpCodes[0xAA] = OpCode{Mnemonic: "TAX", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0xAB] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xAC] = OpCode{Mnemonic: "LDY", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0xAD] = OpCode{Mnemonic: "LDA", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0xAE] = OpCode{Mnemonic: "LDX", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0xAF] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xB0] = OpCode{Mnemonic: "BCS", AddressingMode: AddressingModes[AmRelative]}
-	OpCodes[0xB1] = OpCode{Mnemonic: "LDA", AddressingMode: AddressingModes[AmIndirectY]}
-	OpCodes[0xB2] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xB3] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xB4] = OpCode{Mnemonic: "LDY", AddressingMode: AddressingModes[AmZeroPageX]}
-	OpCodes[0xB5] = OpCode{Mnemonic: "LDA", AddressingMode: AddressingModes[AmZeroPageX]}
-	OpCodes[0xB6] = OpCode{Mnemonic: "LDX", AddressingMode: AddressingModes[AmZeroPageY]}
-	OpCodes[0xB7] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xB8] = OpCode{Mnemonic: "CLV", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0xB9] = OpCode{Mnemonic: "LDA", AddressingMode: AddressingModes[AmAbsoluteY]}
-	OpCodes[0xBA] = OpCode{Mnemonic: "TSX", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0xBB] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xBC] = OpCode{Mnemonic: "LDY", AddressingMode: AddressingModes[AmAbsoluteX]}
-	OpCodes[0xBD] = OpCode{Mnemonic: "LDA", AddressingMode: AddressingModes[AmAbsoluteX]}
-	OpCodes[0xBE] = OpCode{Mnemonic: "LDX", AddressingMode: AddressingModes[AmAbsoluteY]}
-	OpCodes[0xBF] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xC0] = OpCode{Mnemonic: "CPY", AddressingMode: AddressingModes[AmImmediate]}
-	OpCodes[0xC1] = OpCode{Mnemonic: "CMP", AddressingMode: AddressingModes[AmIndirectX]}
-	OpCodes[0xC2] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xC3] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xC4] = OpCode{Mnemonic: "CPY", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0xC5] = OpCode{Mnemonic: "CMP", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0xC6] = OpCode{Mnemonic: "DEC", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0xC7] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xC8] = OpCode{Mnemonic: "INY", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0xC9] = OpCode{Mnemonic: "CMP", AddressingMode: AddressingModes[AmImmediate]}
-	OpCodes[0xCA] = OpCode{Mnemonic: "DEX", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0xCB] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xCC] = OpCode{Mnemonic: "CPY", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0xCD] = OpCode{Mnemonic: "CMP", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0xCE] = OpCode{Mnemonic: "DEC", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0xCF] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xD0] = OpCode{Mnemonic: "BNE", AddressingMode: AddressingModes[AmRelative]}
-	OpCodes[0xD1] = OpCode{Mnemonic: "CMP", AddressingMode: AddressingModes[AmIndirectY]}
-	OpCodes[0xD2] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xD3] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xD4] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xD5] = OpCode{Mnemonic: "CMP", AddressingMode: AddressingModes[AmZeroPageX]}
-	OpCodes[0xD6] = OpCode{Mnemonic: "DEC", AddressingMode: AddressingModes[AmZeroPageX]}
-	OpCodes[0xD7] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xD8] = OpCode{Mnemonic: "CLD", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0xD9] = OpCode{Mnemonic: "CMP", AddressingMode: AddressingModes[AmAbsoluteY]}
-	OpCodes[0xDA] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xDB] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xDC] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xDD] = OpCode{Mnemonic: "CMP", AddressingMode: AddressingModes[AmAbsoluteX]}
-	OpCodes[0xDE] = OpCode{Mnemonic: "DEC", AddressingMode: AddressingModes[AmAbsoluteX]}
-	OpCodes[0xDF] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xE0] = OpCode{Mnemonic: "CPX", AddressingMode: AddressingModes[AmImmediate]}
-	OpCodes[0xE1] = OpCode{Mnemonic: "SBC", AddressingMode: AddressingModes[AmIndirectX]}
-	OpCodes[0xE2] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xE3] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xE4] = OpCode{Mnemonic: "CPX", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0xE5] = OpCode{Mnemonic: "SBC", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0xE6] = OpCode{Mnemonic: "INC", AddressingMode: AddressingModes[AmZeroPage]}
-	OpCodes[0xE7] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xE8] = OpCode{Mnemonic: "INX", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0xE9] = OpCode{Mnemonic: "SBC", AddressingMode: AddressingModes[AmImmediate]}
-	OpCodes[0xEA] = OpCode{Mnemonic: "NOP", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0xEB] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xEC] = OpCode{Mnemonic: "CPX", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0xED] = OpCode{Mnemonic: "SBC", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0xEE] = OpCode{Mnemonic: "INC", AddressingMode: AddressingModes[AmAbsolute]}
-	OpCodes[0xEF] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xF0] = OpCode{Mnemonic: "BEQ", AddressingMode: AddressingModes[AmRelative]}
-	OpCodes[0xF1] = OpCode{Mnemonic: "SBC", AddressingMode: AddressingModes[AmIndirectY]}
-	OpCodes[0xF2] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xF3] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xF4] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xF5] = OpCode{Mnemonic: "SBC", AddressingMode: AddressingModes[AmZeroPageX]}
-	OpCodes[0xF6] = OpCode{Mnemonic: "INC", AddressingMode: AddressingModes[AmZeroPageX]}
-	OpCodes[0xF7] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xF8] = OpCode{Mnemonic: "SED", AddressingMode: AddressingModes[AmNone]}
-	OpCodes[0xF9] = OpCode{Mnemonic: "SBC", AddressingMode: AddressingModes[AmAbsoluteY]}
-	OpCodes[0xFA] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xFB] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xFC] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
-	OpCodes[0xFD] = OpCode{Mnemonic: "SBC", AddressingMode: AddressingModes[AmAbsoluteX]}
-	OpCodes[0xFE] = OpCode{Mnemonic: "INC", AddressingMode: AddressingModes[AmAbsoluteX]}
-	OpCodes[0xFF] = OpCode{Mnemonic: "???", AddressingMode: AddressingModes[AmExpansion]}
+func initOpCodes() {
+	opCodes[0x00] = opCode{mnemonic: "BRK", addressingMode: addressingModes[amNone]}
+	opCodes[0x01] = opCode{mnemonic: "ORA", addressingMode: addressingModes[amIndirectX]}
+	opCodes[0x02] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x03] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x04] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x05] = opCode{mnemonic: "ORA", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0x06] = opCode{mnemonic: "ASL", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0x07] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x08] = opCode{mnemonic: "PHP", addressingMode: addressingModes[amNone]}
+	opCodes[0x09] = opCode{mnemonic: "ORA", addressingMode: addressingModes[amImmediate]}
+	opCodes[0x0A] = opCode{mnemonic: "ASL", addressingMode: addressingModes[amAccumulator]}
+	opCodes[0x0B] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x0C] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x0D] = opCode{mnemonic: "ORA", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0x0E] = opCode{mnemonic: "ASL", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0x0F] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x10] = opCode{mnemonic: "BPL", addressingMode: addressingModes[amRelative]}
+	opCodes[0x11] = opCode{mnemonic: "ORA", addressingMode: addressingModes[amIndirectY]}
+	opCodes[0x12] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x13] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x14] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x15] = opCode{mnemonic: "ORA", addressingMode: addressingModes[amZeroPageX]}
+	opCodes[0x16] = opCode{mnemonic: "ASL", addressingMode: addressingModes[amZeroPageX]}
+	opCodes[0x17] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x18] = opCode{mnemonic: "CLC", addressingMode: addressingModes[amNone]}
+	opCodes[0x19] = opCode{mnemonic: "ORA", addressingMode: addressingModes[amAbsoluteY]}
+	opCodes[0x1A] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x1B] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x1C] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x1D] = opCode{mnemonic: "ORA", addressingMode: addressingModes[amAbsoluteX]}
+	opCodes[0x1E] = opCode{mnemonic: "ASL", addressingMode: addressingModes[amAbsoluteX]}
+	opCodes[0x1F] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x20] = opCode{mnemonic: "JSR", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0x21] = opCode{mnemonic: "AND", addressingMode: addressingModes[amIndirectX]}
+	opCodes[0x22] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x23] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x24] = opCode{mnemonic: "BIT", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0x25] = opCode{mnemonic: "AND", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0x26] = opCode{mnemonic: "ROL", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0x27] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x28] = opCode{mnemonic: "PLP", addressingMode: addressingModes[amNone]}
+	opCodes[0x29] = opCode{mnemonic: "AND", addressingMode: addressingModes[amImmediate]}
+	opCodes[0x2A] = opCode{mnemonic: "ROL", addressingMode: addressingModes[amAccumulator]}
+	opCodes[0x2B] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x2C] = opCode{mnemonic: "BIT", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0x2D] = opCode{mnemonic: "AND", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0x2E] = opCode{mnemonic: "ROL", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0x2F] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x30] = opCode{mnemonic: "BMI", addressingMode: addressingModes[amRelative]}
+	opCodes[0x31] = opCode{mnemonic: "AND", addressingMode: addressingModes[amIndirectY]}
+	opCodes[0x32] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x33] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x34] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x35] = opCode{mnemonic: "AND", addressingMode: addressingModes[amZeroPageX]}
+	opCodes[0x36] = opCode{mnemonic: "ROL", addressingMode: addressingModes[amZeroPageX]}
+	opCodes[0x37] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x38] = opCode{mnemonic: "SEC", addressingMode: addressingModes[amNone]}
+	opCodes[0x39] = opCode{mnemonic: "AND", addressingMode: addressingModes[amAbsoluteY]}
+	opCodes[0x3A] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x3B] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x3C] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x3D] = opCode{mnemonic: "AND", addressingMode: addressingModes[amAbsoluteX]}
+	opCodes[0x3E] = opCode{mnemonic: "ROL", addressingMode: addressingModes[amAbsoluteX]}
+	opCodes[0x3F] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x40] = opCode{mnemonic: "RTI", addressingMode: addressingModes[amNone]}
+	opCodes[0x41] = opCode{mnemonic: "EOR", addressingMode: addressingModes[amIndirectX]}
+	opCodes[0x42] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x43] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x44] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x45] = opCode{mnemonic: "EOR", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0x46] = opCode{mnemonic: "LSR", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0x47] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x48] = opCode{mnemonic: "PHA", addressingMode: addressingModes[amNone]}
+	opCodes[0x49] = opCode{mnemonic: "EOR", addressingMode: addressingModes[amImmediate]}
+	opCodes[0x4A] = opCode{mnemonic: "LSR", addressingMode: addressingModes[amAccumulator]}
+	opCodes[0x4B] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x4C] = opCode{mnemonic: "JMP", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0x4D] = opCode{mnemonic: "EOR", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0x4E] = opCode{mnemonic: "LSR", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0x4F] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x50] = opCode{mnemonic: "BVC", addressingMode: addressingModes[amRelative]}
+	opCodes[0x51] = opCode{mnemonic: "EOR", addressingMode: addressingModes[amIndirectY]}
+	opCodes[0x52] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x53] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x54] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x55] = opCode{mnemonic: "EOR", addressingMode: addressingModes[amZeroPageX]}
+	opCodes[0x56] = opCode{mnemonic: "LSR", addressingMode: addressingModes[amZeroPageX]}
+	opCodes[0x57] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x58] = opCode{mnemonic: "CLI", addressingMode: addressingModes[amNone]}
+	opCodes[0x59] = opCode{mnemonic: "EOR", addressingMode: addressingModes[amAbsoluteY]}
+	opCodes[0x5A] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x5B] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x5C] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x5D] = opCode{mnemonic: "EOR", addressingMode: addressingModes[amAbsoluteX]}
+	opCodes[0x5E] = opCode{mnemonic: "LSR", addressingMode: addressingModes[amAbsoluteX]}
+	opCodes[0x5F] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x60] = opCode{mnemonic: "RTS", addressingMode: addressingModes[amNone]}
+	opCodes[0x61] = opCode{mnemonic: "ADC", addressingMode: addressingModes[amIndirectX]}
+	opCodes[0x62] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x63] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x64] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x65] = opCode{mnemonic: "ADC", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0x66] = opCode{mnemonic: "ROR", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0x67] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x68] = opCode{mnemonic: "PLA", addressingMode: addressingModes[amNone]}
+	opCodes[0x69] = opCode{mnemonic: "ADC", addressingMode: addressingModes[amImmediate]}
+	opCodes[0x6A] = opCode{mnemonic: "ROR", addressingMode: addressingModes[amAccumulator]}
+	opCodes[0x6B] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x6C] = opCode{mnemonic: "JMP", addressingMode: addressingModes[amIndirect]}
+	opCodes[0x6D] = opCode{mnemonic: "ADC", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0x6E] = opCode{mnemonic: "ROR", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0x6F] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x70] = opCode{mnemonic: "BVS", addressingMode: addressingModes[amRelative]}
+	opCodes[0x71] = opCode{mnemonic: "ADC", addressingMode: addressingModes[amIndirectY]}
+	opCodes[0x72] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x73] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x74] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x75] = opCode{mnemonic: "ADC", addressingMode: addressingModes[amZeroPageX]}
+	opCodes[0x76] = opCode{mnemonic: "ROR", addressingMode: addressingModes[amZeroPageX]}
+	opCodes[0x77] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x78] = opCode{mnemonic: "SEI", addressingMode: addressingModes[amNone]}
+	opCodes[0x79] = opCode{mnemonic: "ADC", addressingMode: addressingModes[amAbsoluteY]}
+	opCodes[0x7A] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x7B] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x7C] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x7D] = opCode{mnemonic: "ADC", addressingMode: addressingModes[amAbsoluteX]}
+	opCodes[0x7E] = opCode{mnemonic: "ROR", addressingMode: addressingModes[amAbsoluteX]}
+	opCodes[0x7F] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x80] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x81] = opCode{mnemonic: "STA", addressingMode: addressingModes[amIndirectX]}
+	opCodes[0x82] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x83] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x84] = opCode{mnemonic: "STY", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0x85] = opCode{mnemonic: "STA", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0x86] = opCode{mnemonic: "STX", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0x87] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x88] = opCode{mnemonic: "DEY", addressingMode: addressingModes[amNone]}
+	opCodes[0x89] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x8A] = opCode{mnemonic: "TXA", addressingMode: addressingModes[amNone]}
+	opCodes[0x8B] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x8C] = opCode{mnemonic: "STY", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0x8D] = opCode{mnemonic: "STA", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0x8E] = opCode{mnemonic: "STX", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0x8F] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x90] = opCode{mnemonic: "BCC", addressingMode: addressingModes[amRelative]}
+	opCodes[0x91] = opCode{mnemonic: "STA", addressingMode: addressingModes[amIndirectY]}
+	opCodes[0x92] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x93] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x94] = opCode{mnemonic: "STY", addressingMode: addressingModes[amZeroPageX]}
+	opCodes[0x95] = opCode{mnemonic: "STA", addressingMode: addressingModes[amZeroPageX]}
+	opCodes[0x96] = opCode{mnemonic: "STX", addressingMode: addressingModes[amZeroPageY]}
+	opCodes[0x97] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x98] = opCode{mnemonic: "TYA", addressingMode: addressingModes[amNone]}
+	opCodes[0x99] = opCode{mnemonic: "STA", addressingMode: addressingModes[amAbsoluteY]}
+	opCodes[0x9A] = opCode{mnemonic: "TXS", addressingMode: addressingModes[amNone]}
+	opCodes[0x9B] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x9C] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x9D] = opCode{mnemonic: "STA", addressingMode: addressingModes[amAbsoluteX]}
+	opCodes[0x9E] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0x9F] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xA0] = opCode{mnemonic: "LDY", addressingMode: addressingModes[amImmediate]}
+	opCodes[0xA1] = opCode{mnemonic: "LDA", addressingMode: addressingModes[amIndirectX]}
+	opCodes[0xA2] = opCode{mnemonic: "LDX", addressingMode: addressingModes[amImmediate]}
+	opCodes[0xA3] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xA4] = opCode{mnemonic: "LDY", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0xA5] = opCode{mnemonic: "LDA", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0xA6] = opCode{mnemonic: "LDX", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0xA7] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xA8] = opCode{mnemonic: "TAY", addressingMode: addressingModes[amNone]}
+	opCodes[0xA9] = opCode{mnemonic: "LDA", addressingMode: addressingModes[amImmediate]}
+	opCodes[0xAA] = opCode{mnemonic: "TAX", addressingMode: addressingModes[amNone]}
+	opCodes[0xAB] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xAC] = opCode{mnemonic: "LDY", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0xAD] = opCode{mnemonic: "LDA", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0xAE] = opCode{mnemonic: "LDX", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0xAF] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xB0] = opCode{mnemonic: "BCS", addressingMode: addressingModes[amRelative]}
+	opCodes[0xB1] = opCode{mnemonic: "LDA", addressingMode: addressingModes[amIndirectY]}
+	opCodes[0xB2] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xB3] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xB4] = opCode{mnemonic: "LDY", addressingMode: addressingModes[amZeroPageX]}
+	opCodes[0xB5] = opCode{mnemonic: "LDA", addressingMode: addressingModes[amZeroPageX]}
+	opCodes[0xB6] = opCode{mnemonic: "LDX", addressingMode: addressingModes[amZeroPageY]}
+	opCodes[0xB7] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xB8] = opCode{mnemonic: "CLV", addressingMode: addressingModes[amNone]}
+	opCodes[0xB9] = opCode{mnemonic: "LDA", addressingMode: addressingModes[amAbsoluteY]}
+	opCodes[0xBA] = opCode{mnemonic: "TSX", addressingMode: addressingModes[amNone]}
+	opCodes[0xBB] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xBC] = opCode{mnemonic: "LDY", addressingMode: addressingModes[amAbsoluteX]}
+	opCodes[0xBD] = opCode{mnemonic: "LDA", addressingMode: addressingModes[amAbsoluteX]}
+	opCodes[0xBE] = opCode{mnemonic: "LDX", addressingMode: addressingModes[amAbsoluteY]}
+	opCodes[0xBF] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xC0] = opCode{mnemonic: "CPY", addressingMode: addressingModes[amImmediate]}
+	opCodes[0xC1] = opCode{mnemonic: "CMP", addressingMode: addressingModes[amIndirectX]}
+	opCodes[0xC2] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xC3] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xC4] = opCode{mnemonic: "CPY", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0xC5] = opCode{mnemonic: "CMP", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0xC6] = opCode{mnemonic: "DEC", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0xC7] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xC8] = opCode{mnemonic: "INY", addressingMode: addressingModes[amNone]}
+	opCodes[0xC9] = opCode{mnemonic: "CMP", addressingMode: addressingModes[amImmediate]}
+	opCodes[0xCA] = opCode{mnemonic: "DEX", addressingMode: addressingModes[amNone]}
+	opCodes[0xCB] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xCC] = opCode{mnemonic: "CPY", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0xCD] = opCode{mnemonic: "CMP", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0xCE] = opCode{mnemonic: "DEC", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0xCF] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xD0] = opCode{mnemonic: "BNE", addressingMode: addressingModes[amRelative]}
+	opCodes[0xD1] = opCode{mnemonic: "CMP", addressingMode: addressingModes[amIndirectY]}
+	opCodes[0xD2] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xD3] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xD4] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xD5] = opCode{mnemonic: "CMP", addressingMode: addressingModes[amZeroPageX]}
+	opCodes[0xD6] = opCode{mnemonic: "DEC", addressingMode: addressingModes[amZeroPageX]}
+	opCodes[0xD7] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xD8] = opCode{mnemonic: "CLD", addressingMode: addressingModes[amNone]}
+	opCodes[0xD9] = opCode{mnemonic: "CMP", addressingMode: addressingModes[amAbsoluteY]}
+	opCodes[0xDA] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xDB] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xDC] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xDD] = opCode{mnemonic: "CMP", addressingMode: addressingModes[amAbsoluteX]}
+	opCodes[0xDE] = opCode{mnemonic: "DEC", addressingMode: addressingModes[amAbsoluteX]}
+	opCodes[0xDF] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xE0] = opCode{mnemonic: "CPX", addressingMode: addressingModes[amImmediate]}
+	opCodes[0xE1] = opCode{mnemonic: "SBC", addressingMode: addressingModes[amIndirectX]}
+	opCodes[0xE2] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xE3] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xE4] = opCode{mnemonic: "CPX", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0xE5] = opCode{mnemonic: "SBC", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0xE6] = opCode{mnemonic: "INC", addressingMode: addressingModes[amZeroPage]}
+	opCodes[0xE7] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xE8] = opCode{mnemonic: "INX", addressingMode: addressingModes[amNone]}
+	opCodes[0xE9] = opCode{mnemonic: "SBC", addressingMode: addressingModes[amImmediate]}
+	opCodes[0xEA] = opCode{mnemonic: "NOP", addressingMode: addressingModes[amNone]}
+	opCodes[0xEB] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xEC] = opCode{mnemonic: "CPX", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0xED] = opCode{mnemonic: "SBC", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0xEE] = opCode{mnemonic: "INC", addressingMode: addressingModes[amAbsolute]}
+	opCodes[0xEF] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xF0] = opCode{mnemonic: "BEQ", addressingMode: addressingModes[amRelative]}
+	opCodes[0xF1] = opCode{mnemonic: "SBC", addressingMode: addressingModes[amIndirectY]}
+	opCodes[0xF2] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xF3] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xF4] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xF5] = opCode{mnemonic: "SBC", addressingMode: addressingModes[amZeroPageX]}
+	opCodes[0xF6] = opCode{mnemonic: "INC", addressingMode: addressingModes[amZeroPageX]}
+	opCodes[0xF7] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xF8] = opCode{mnemonic: "SED", addressingMode: addressingModes[amNone]}
+	opCodes[0xF9] = opCode{mnemonic: "SBC", addressingMode: addressingModes[amAbsoluteY]}
+	opCodes[0xFA] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xFB] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xFC] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
+	opCodes[0xFD] = opCode{mnemonic: "SBC", addressingMode: addressingModes[amAbsoluteX]}
+	opCodes[0xFE] = opCode{mnemonic: "INC", addressingMode: addressingModes[amAbsoluteX]}
+	opCodes[0xFF] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
 }
 
 func InitInstructionDecoder() {
-	InitAddressingModes()
-	InitOpCodes()
+	initAddressingModes()
+	initOpCodes()
 }
