@@ -9,40 +9,42 @@ import (
 )
 
 const (
-	CpuFlagC byte = 1 << iota // 0x01
-	CpuFlagZ                  // 0x02
-	CpuFlagI                  // 0x04
-	CpuFlagD                  // 0x08
-	CpuFlagB                  // 0x10
-	CpuFlagR                  // 0x20
-	CpuFlagV                  // 0x40
-	CpuFlagN                  // 0x80
+	CpuFlagC byte = 1 << iota // 0x01 carry
+	CpuFlagZ                  // 0x02 zero
+	CpuFlagI                  // 0x04 interrupt disable
+	CpuFlagD                  // 0x08 decimal mode
+	CpuFlagB                  // 0x10 break
+	CpuFlagR                  // 0x20 reserved (unused)
+	CpuFlagV                  // 0x40 overflow
+	CpuFlagN                  // 0x80 sign/negative
 )
 
 var State struct {
-	A  uint8
-	X  uint8
-	Y  uint8
-	PC uint16
-	SP uint8
-	P  uint8
+	A  uint8  // accumulator
+	X  uint8  // X register
+	Y  uint8  // Y register
+	PC uint16 // program counter
+	SP uint8  // stack pointer
+	P  uint8  // processor flags
 }
 
-// Init the CPU registers, interrupts and disable testing code
+// Init sets up the CPU registers, interrupts and disable testing code
 func Init() {
 	system.RunningTests = false
 	system.RunningFunctionalTests = false
 	system.RunningInterruptTests = false
+
+	system.PendingInterrupt = false
+	system.PendingNMI = false
 
 	State.A = 0
 	State.X = 0
 	State.Y = 0
 	State.P = CpuFlagR | CpuFlagB | CpuFlagZ
 	State.SP = 0xff
-	system.PendingInterrupt = false
-	system.PendingNMI = false
 }
 
+// setC sets the carry flag
 func setC(value bool) {
 	if value {
 		State.P |= CpuFlagC
@@ -51,6 +53,7 @@ func setC(value bool) {
 	}
 }
 
+// setV sets the overflow flag
 func setV(value bool) {
 	if value {
 		State.P |= CpuFlagV
@@ -59,6 +62,7 @@ func setV(value bool) {
 	}
 }
 
+// setN sets the sign/negative flag if the value is negative (>=0x80)
 func setN(value uint8) {
 	if (value & 0x80) != 0 {
 		State.P |= CpuFlagN
@@ -67,6 +71,7 @@ func setN(value uint8) {
 	}
 }
 
+// setZ sets the zero flag if the value is zero
 func setZ(value uint8) {
 	if value == 0 {
 		State.P |= CpuFlagZ
@@ -95,12 +100,14 @@ func isN() bool {
 	return (State.P & CpuFlagN) != 0
 }
 
+// push8 pushes an 8 bit value to the stack
 func push8(value uint8) {
 	mmu.WritePageTable[mmu.StackPage][State.SP] = value
 	State.SP -= 1
 	State.SP &= 0xff
 }
 
+// push16 pushes a 16 bit value to the stack
 func push16(value uint16) {
 	mmu.WritePageTable[mmu.StackPage][State.SP] = uint8(value >> 8)
 	mmu.WritePageTable[mmu.StackPage][State.SP-1] = uint8(value & 0xff)
@@ -108,12 +115,14 @@ func push16(value uint16) {
 	State.SP &= 0xff
 }
 
+// pop8 pulls an 8 bit value from the stack
 func pop8() uint8 {
 	State.SP += 1
 	State.SP &= 0xff
 	return mmu.ReadPageTable[mmu.StackPage][State.SP]
 }
 
+// pop16 pulls a 16 bit value from the stack
 func pop16() uint16 {
 	State.SP += 2
 	State.SP &= 0xff
@@ -122,7 +131,8 @@ func pop16() uint16 {
 	return lsb + msb<<8
 }
 
-func branch(instructionName string, doBranch bool) {
+// branch handles a branch instruction
+func branch(doBranch bool) {
 	value := mmu.ReadMemory(State.PC + 1)
 
 	var relativeAddress uint16
@@ -135,10 +145,12 @@ func branch(instructionName string, doBranch bool) {
 	system.FrameCycles += 2
 	if doBranch {
 		if system.RunningTests && State.PC == relativeAddress {
+			// Catch an infinite loop and exit
 			fmt.Printf("Trap at $%04x\n", relativeAddress)
 			os.Exit(0)
 		}
 
+		// The number of cycles depends on if a page boundary was crossed
 		samePage := (State.PC & 0xff00) == (relativeAddress & 0xff00)
 		if samePage {
 			system.FrameCycles += 1
@@ -151,6 +163,7 @@ func branch(instructionName string, doBranch bool) {
 	}
 }
 
+// getAddressFromAddressMode gets the address an instruction is referring to
 func getAddressFromAddressMode(addressMode byte) (result uint16, pageBoundaryCrossed bool) {
 	switch addressMode {
 	case amZeroPage:
@@ -186,6 +199,7 @@ func getAddressFromAddressMode(addressMode byte) (result uint16, pageBoundaryCro
 	return result, pageBoundaryCrossed
 }
 
+// readMemoryWithAddressMode reads memory using a particular address mode
 func readMemoryWithAddressMode(addressMode byte) (result uint8, pageBoundaryCrossed bool) {
 	switch addressMode {
 	case amImmediate:
@@ -239,7 +253,7 @@ func readMemoryWithAddressMode(addressMode byte) (result uint8, pageBoundaryCros
 	return result, pageBoundaryCrossed
 }
 
-// STA, STX and STY
+// store handles STA, STX and STY
 func store(regValue uint8, addressMode byte) {
 	address, _ := getAddressFromAddressMode(addressMode)
 	mmu.WriteMemory(address, regValue)
@@ -277,7 +291,7 @@ func store(regValue uint8, addressMode byte) {
 	}
 }
 
-// These instructions take the same amount of system.FrameCycles
+// advanceCyclesForAcculumatorOperation advances the number of cycles for common accumulator operations
 func advanceCyclesForAcculumatorOperation(addressMode byte, pageBoundaryCrossed bool) {
 	extraCycle := uint64(0)
 	if pageBoundaryCrossed {
@@ -308,6 +322,7 @@ func advanceCyclesForAcculumatorOperation(addressMode byte, pageBoundaryCrossed 
 	}
 }
 
+// LDA, LDX, LDY
 func load(addressMode byte) uint8 {
 	value, pageBoundaryCrossed := readMemoryWithAddressMode(addressMode)
 	setN(value)
@@ -316,6 +331,7 @@ func load(addressMode byte) uint8 {
 	return value
 }
 
+// CMP, CPX, CPY
 func cmp(regValue uint8, addressMode byte) {
 	value, pageBoundaryCrossed := readMemoryWithAddressMode(addressMode)
 	var result uint16
@@ -532,30 +548,37 @@ func nmi() {
 	system.FrameCycles += 7
 }
 
+// Run runs the CPU until either wantedCycles has been reached (if non-zero) or the program counter reaches breakAddress.
+// system.FrameCycles is the amount of cycles executed so far.
 func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableFirmwareWait bool, wantedCycles uint64) {
 	system.FrameCycles = 0
 
 	for {
+		// Exit if wantedCycles is set and has been reached
 		if (wantedCycles != 0) && (system.FrameCycles >= wantedCycles) {
 			return
 		}
 
+		// Exit if the magic address of the functional tests has been reached
 		if system.RunningTests && (State.PC == 0x3869) {
 			fmt.Println("Functional tests passed")
 			return
 		}
 
+		// Exit if the magic address of the interupt tests has been reached
 		if system.RunningTests && (State.PC == 0x0af5) {
 			fmt.Println("Interrupt tests passed")
 			return
 		}
 
+		// Handle an IRQ f there is one pending and interrupts are enabled
 		if system.PendingInterrupt && ((State.P & CpuFlagI) == 0) {
 			irq()
 			system.PendingInterrupt = false
 			continue
 		}
 
+		// Handle an NMI if there is one pending
 		if system.PendingNMI {
 			nmi()
 			system.PendingNMI = false
@@ -566,24 +589,29 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 			PrintInstruction(true)
 		}
 
-		opcode := mmu.ReadMemory(State.PC)
-		addressMode := opCodes[opcode].addressingMode.mode
-
+		// Handle case of breakAddress being set and being been reached
 		if breakAddress != nil && State.PC == *breakAddress {
 			if exitAtBreak {
+				// Exit the process completely
 				fmt.Printf("Break at $%04x\n", *breakAddress)
 				PrintInstruction(true)
 				os.Exit(0)
 			} else {
+				// Exit politely
 				return
 			}
 		}
+
+		// Decode opcode
+		opcode := mmu.ReadMemory(State.PC)
+		addressMode := opCodes[opcode].addressingMode.mode
 
 		switch opcode {
 
 		case 0x4c: // JMP $0000
 			value := uint16(mmu.ReadMemory(State.PC+1)) + uint16(mmu.ReadMemory(State.PC+2))<<8
 			if system.RunningTests && State.PC == value {
+				// Check for an infinite loop and exit if so
 				fmt.Printf("Trap at $%04x\n", value)
 				os.Exit(0)
 			}
@@ -599,6 +627,7 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 			system.FrameCycles += 6
 
 			if disableFirmwareWait && value == 0xfca8 {
+				// Don't call the firmware wait, just move forward and pretend it happened.
 				State.PC += 3
 				State.A = 0
 				continue
@@ -679,25 +708,25 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 			State.PC++
 			system.FrameCycles += 2
 
-		case 0xE8:
+		case 0xE8: // INX
 			State.X = (State.X + 1) & 0xff
 			setN(State.X)
 			setZ(State.X)
 			State.PC++
 			system.FrameCycles += 2
-		case 0xC8:
+		case 0xC8: // INY
 			State.Y = (State.Y + 1) & 0xff
 			setN(State.Y)
 			setZ(State.Y)
 			State.PC++
 			system.FrameCycles += 2
-		case 0xca:
+		case 0xca: // DEX
 			State.X = (State.X - 1) & 0xff
 			setN(State.X)
 			setZ(State.X)
 			State.PC++
 			system.FrameCycles += 2
-		case 0x88:
+		case 0x88: // DEY
 			State.Y = (State.Y - 1) & 0xff
 			setN(State.Y)
 			setZ(State.Y)
@@ -706,21 +735,21 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 
 		// Branch instructions
 		case 0x10:
-			branch("BPL", !isN())
+			branch(!isN())
 		case 0x30:
-			branch("BMI", isN())
+			branch(isN())
 		case 0x50:
-			branch("BVC", !isV())
+			branch(!isV())
 		case 0x70:
-			branch("BVS", isV())
+			branch(isV())
 		case 0x90:
-			branch("BCC", !isC())
+			branch(!isC())
 		case 0xb0:
-			branch("BCS", isC())
+			branch(isC())
 		case 0xd0:
-			branch("BNE", !isZ())
+			branch(!isZ())
 		case 0xf0:
-			branch("BEQ", isZ())
+			branch(isZ())
 
 		// Flag setting
 		case 0x18: // CLC
@@ -752,6 +781,7 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 			State.PC++
 			system.FrameCycles += 2
 
+		// Stack operations
 		case 0x48: // PHA
 			push8(State.A)
 			State.PC++
@@ -796,6 +826,7 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 			State.PC += 3
 			system.FrameCycles += 4
 
+		// Shifts and rotations
 		case 0x0a, 0x06, 0x16, 0x0e, 0x1e: // ASL
 			address, value := preProcessShift(addressMode)
 			setC((value & 0x80) != 0)

@@ -19,7 +19,6 @@ func testBellCycles(delay int) {
 	mmu.WriteMemory(0x805, 0x00)         // BRK
 
 	// Run the code until the BRK instruction and count the cycles
-	system.FrameCycles = 0
 	showInstructions := false
 	breakAddress := uint16(0x805)
 	exitAtBreak := false

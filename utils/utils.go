@@ -57,7 +57,6 @@ func DecodeCmdLineAddress(s *string) (result *uint16) {
 // been reached.
 func RunUntilBreakPoint(t *testing.T, breakAddress uint16, seconds int, showInstructions bool, message string) {
 	fmt.Printf("Running until %#04x: %s \n", breakAddress, message)
-	system.FrameCycles = 0
 	system.LastAudioCycles = 0
 	exitAtBreak := false
 	disableFirmwareWait := false

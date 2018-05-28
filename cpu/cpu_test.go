@@ -1,12 +1,15 @@
 package cpu_test
 
+// Test the CPU using the functional and interrupt tests defined in the *.a65
+// files and compiled to bin.gz files. The cpu package is aware of tests being run and
+// will exit or bail on success and failure certain conditions.
+
 import (
 	"flag"
 	"fmt"
 	"testing"
 
 	"github.com/freewilll/apple2/cpu"
-	"github.com/freewilll/apple2/keyboard"
 	"github.com/freewilll/apple2/mmu"
 	"github.com/freewilll/apple2/system"
 	"github.com/freewilll/apple2/utils"
@@ -72,8 +75,6 @@ func TestCPU(t *testing.T) {
 			mmu.ReadPageTable[0xc0+i] = RomPretendingToBeRAM[i*0x100 : i*0x100+0x100]
 			mmu.WritePageTable[0xc0+i] = RomPretendingToBeRAM[i*0x100 : i*0x100+0x100]
 		}
-
-		keyboard.Init()
 
 		cpu.Run(*showInstructions, breakAddress, true, false, 0)
 		fmt.Printf("Finished running %s\n\n", rom)

@@ -7,6 +7,7 @@ import (
 	"github.com/freewilll/apple2/mmu"
 )
 
+// printFlag prints a lower or uppercase letter depending on the state of the flag
 func printFlag(p byte, flag uint8, code string) {
 	if (p & flag) == 0 {
 		fmt.Print(code)
@@ -15,6 +16,7 @@ func printFlag(p byte, flag uint8, code string) {
 	}
 }
 
+// printInstruction prings a single instruction and optionally also registers
 func printInstruction(instruction string, showRegisters bool) {
 	fmt.Printf("%04x-   %-24s", State.PC, instruction)
 
@@ -40,6 +42,7 @@ func printInstruction(instruction string, showRegisters bool) {
 	fmt.Println("")
 }
 
+// PrintInstruction prints the instruction at the current PC
 func PrintInstruction(showRegisters bool) {
 	opcodeValue := mmu.ReadPageTable[(State.PC)>>8][(State.PC)&0xff]
 	opcode := opCodes[opcodeValue]
@@ -82,6 +85,7 @@ func PrintInstruction(showRegisters bool) {
 	printInstruction(fmt.Sprintf("%s %s %s", opcodes, mnemonic, suffix), showRegisters)
 }
 
+// AdvanceInstruction goes forward one instruction without executing anything
 func AdvanceInstruction() {
 	opcodeValue := mmu.ReadPageTable[(State.PC)>>8][(State.PC)&0xff]
 	opcode := opCodes[opcodeValue]
@@ -89,6 +93,7 @@ func AdvanceInstruction() {
 	State.PC += uint16(size)
 }
 
+// DumpMemory dumps $100 bytes of memory
 func DumpMemory(offset uint16) {
 	var i uint16
 	for i = 0; i < 0x100; i++ {
