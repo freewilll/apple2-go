@@ -4,14 +4,14 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
-var ebitenAsciiMap map[ebiten.Key]uint8
-var shiftMap map[uint8]uint8
-var controlMap map[uint8]uint8
+var ebitenAsciiMap map[ebiten.Key]uint8 // ebiten keys mapped to ASCII
+var shiftMap map[uint8]uint8            // ebiten keys mapped to ASCII when shift is pressed
+var controlMap map[uint8]uint8          // ebiten keys mapped to ASCII when control is pressed
 
-var keyBoardData uint8
-var strobe uint8
-var previousKeysPressed map[uint8]bool
-var capsLock bool
+var keyBoardData uint8                 // Contents of the $c000 address
+var strobe uint8                       // Contents of the $c010 address
+var previousKeysPressed map[uint8]bool // Keep track of what keys have been pressed in the previous round
+var capsLock bool                      // Is capslock down
 
 // Init the keyboard state and ebiten translation tables
 func Init() {
@@ -190,12 +190,14 @@ func Init() {
 	controlMap['~'] = 0x60
 }
 
-// Poll queries ebiten's keyboard state and transforms that into apple //e
-// values in $c000 and $c010
+// Poll queries ebiten's keyboard state and transforms that into ASCII
+// values in $c000 and $c010. Keypresses from the previous round have to be
+// taken into account in order to detect if a single new key has been pressed.
 func Poll() {
 	allKeysPressed := make(map[uint8]bool)
 	newKeysPressed := make(map[uint8]bool)
 
+	// Query ebiten for all possible keys
 	for k, v := range ebitenAsciiMap {
 		if ebiten.IsKeyPressed(k) {
 			allKeysPressed[v] = true
@@ -222,6 +224,8 @@ func Poll() {
 	}
 
 	// Implicit else, one new key has been pressed
+
+	// Get the key
 	keys := []uint8{}
 	for k := range newKeysPressed {
 		keys = append(keys, k)
@@ -229,11 +233,13 @@ func Poll() {
 	key := keys[0]
 
 	if ebiten.IsKeyPressed(ebiten.KeyControl) && ebiten.IsKeyPressed(ebiten.KeyAlt) && key == 'c' {
+		// Toggle capslock
 		capsLock = !capsLock
 	} else {
+		// Normal case. Transform the ebiten key into ASCII
+
 		shift := ebiten.IsKeyPressed(ebiten.KeyShift)
 		shift = shift || (capsLock && key >= 'a' && key <= 'z')
-
 		if shift {
 			shiftedKey, present := shiftMap[key]
 			if present {
@@ -247,6 +253,7 @@ func Poll() {
 				key = controlKey
 			}
 		}
+
 		keyBoardData = key | 0x80
 		strobe = keyBoardData
 	}
@@ -254,10 +261,12 @@ func Poll() {
 	return
 }
 
+// Read returns the data and strobe values from set from the Poll() call
 func Read() (uint8, uint8) {
 	return keyBoardData, strobe
 }
 
+// ResetStrobe clears the high bit in keyboardData
 func ResetStrobe() {
 	keyBoardData &= 0x7f
 }

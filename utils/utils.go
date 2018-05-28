@@ -12,6 +12,7 @@ import (
 	"github.com/freewilll/apple2/system"
 )
 
+// ReadMemoryFromGzipFile just reads and uncompresses a gzip file
 func ReadMemoryFromGzipFile(filename string) (data []byte, err error) {
 	f, err := os.Open(filename)
 	if err != nil {
@@ -29,6 +30,7 @@ func ReadMemoryFromGzipFile(filename string) (data []byte, err error) {
 	return
 }
 
+// DecodeCmdLineAddress decodes a 4 byte string hex address
 func DecodeCmdLineAddress(s *string) (result *uint16) {
 	if *s != "" {
 		breakAddressValue, err := hex.DecodeString(*s)
@@ -50,6 +52,9 @@ func DecodeCmdLineAddress(s *string) (result *uint16) {
 	return result
 }
 
+// RunUntilBreakPoint runs the CPU until it either hits a breakpoint or a time
+// has expired. An assertion is done at the end to ensure the breakpoint has
+// been reached.
 func RunUntilBreakPoint(t *testing.T, breakAddress uint16, seconds int, showInstructions bool, message string) {
 	fmt.Printf("Running until %#04x: %s \n", breakAddress, message)
 	system.FrameCycles = 0
@@ -62,6 +67,7 @@ func RunUntilBreakPoint(t *testing.T, breakAddress uint16, seconds int, showInst
 	}
 }
 
+// Disassemble disassembles and prints the code in memory between start and end
 func Disassemble(start uint16, end uint16) {
 	oldPC := cpu.State.PC
 

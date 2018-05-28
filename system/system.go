@@ -1,32 +1,36 @@
 package system
 
+// The system package is a dumping ground for globals that are shared between
+// the packages.
+
 const (
-	CpuFrequency    = 1023000
-	AudioSampleRate = 44100
+	CpuFrequency    = 1023000 // 6402 CPU frequency in Hz
+	AudioSampleRate = 44100   // Audio sample rate in Hz
 )
 
 var (
-	PendingInterrupt        bool
-	PendingNMI              bool
-	RunningTests            bool
-	RunningFunctionalTests  bool
-	RunningInterruptTests   bool
-	Cycles                  uint64
-	FrameCycles             uint64
-	AudioChannel            chan int16
-	LastAudioValue          int16
-	LastAudioCycles         uint64
-	AudioAttenuationCounter uint64
+	PendingInterrupt        bool       // Set when an interrupt has just happened
+	PendingNMI              bool       // Set when a non maskable interrupt has just happened
+	RunningTests            bool       // For testing
+	RunningFunctionalTests  bool       // For testing
+	RunningInterruptTests   bool       // For testing
+	Cycles                  uint64     // Total CPU cycles executed
+	FrameCycles             uint64     // CPU cycles executed in the current frame
+	AudioChannel            chan int16 // Audio channel
+	LastAudioValue          int16      // + or - value of the current square wave
+	LastAudioCycles         uint64     // Last CPU cycle when audio was sent to the channel
+	AudioAttenuationCounter uint64     // Counter to keep track of when the audio should be zeroed after inactivity
 )
 
+// DriveState has the state of the disk drive
 var DriveState struct {
-	Drive        uint8
-	Spinning     bool
-	Phase        int8
-	Phases       uint8
-	BytePosition int
-	Q6           bool
-	Q7           bool
+	Drive        uint8 // What drive we're using. Currently only 1 is implemented
+	Spinning     bool  // Is the motor spinning
+	Phase        int8  // Phase of the stepper motor
+	Phases       uint8 // the 4 lowest bits represent the 4 stepper motor magnet on/off states.
+	BytePosition int   // Index of the position on the current track
+	Q6           bool  // Q6 soft switch
+	Q7           bool  // Q7 soft switch
 }
 
 // Init initializes the system-wide state
