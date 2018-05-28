@@ -1,5 +1,7 @@
 package audio
 
+// This file contains the consumer part of the audio code. audio.go is responsible for producing to it
+
 import (
 	"errors"
 
@@ -8,20 +10,23 @@ import (
 )
 
 var (
-	audioContext            *ebiten_audio.Context
-	player                  *ebiten_audio.Player
-	firstAudio              bool
-	Mute                    bool
-	ClickWhenDriveHeadMoves bool
+	audioContext            *ebiten_audio.Context // Ebitem audio context
+	player                  *ebiten_audio.Player  // Ebitem stream player
+	firstAudio              bool                  // True at startup
+	Mute                    bool                  // Mute
+	ClickWhenDriveHeadMoves bool                  // Click speaker when the drive head moves
 )
 
+// The streaming code is based on the ebiten sinewave example
 type stream struct{}
 
+// Read is called whenever the sound hardware wants some samples. Convert the
+// 16 bit data in the sound buffer to 8 bit stereo values.
 func (s *stream) Read(data []byte) (int, error) {
 	dataLen := len(data)
 
 	if firstAudio {
-		// The first time, drain the audio queue
+		// The first time, drain the audio queue and exit
 		firstAudio = false
 
 		for i := 0; i < len(system.AudioChannel); i++ {
@@ -30,14 +35,18 @@ func (s *stream) Read(data []byte) (int, error) {
 		return dataLen, nil
 	}
 
+	// Sanity test
 	if dataLen%4 != 0 {
 		return 0, errors.New("dataLen % 4 must be 0")
 	}
 
+	// Do nothing if we're muted, but ensure the channel keeps getting drained
 	if Mute {
+		firstAudio = true
 		return dataLen, nil
 	}
 
+	// Consume the samples from the channel
 	samples := dataLen / 4
 
 	for i := 0; i < dataLen; i++ {
@@ -56,12 +65,14 @@ func (s *stream) Read(data []byte) (int, error) {
 	return dataLen, nil
 }
 
+// Close is called when the program exits
 func (s *stream) Close() error {
 	return nil
 }
 
 // InitEbiten initializes the audio sets up the ebiten output stream
 func InitEbiten() {
+	// Setup initial state
 	firstAudio = true
 	Mute = false
 	ClickWhenDriveHeadMoves = false
