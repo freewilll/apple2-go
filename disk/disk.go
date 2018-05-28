@@ -9,7 +9,7 @@ import (
 
 const tracksPerDisk = 35
 const sectorsPerTrack = 16
-const imageLength = tracksPerDisk * sectorsPerTrack * 0x100
+const imageLength = tracksPerDisk * sectorsPerTrack * 0x100 // Number of bytes taken by a disk image
 
 // Each sector has
 // Address field prologue               0x003 bytes
@@ -20,12 +20,12 @@ const imageLength = tracksPerDisk * sectorsPerTrack * 0x100
 // 6-bits                               0x100 bytes
 // checksum                             0x001 byte
 // Data epilogue                        0x003 bytes
-const diskSectorBytes = 3 + 8 + 3 + 3 + 0x56 + 0x100 + 1 + 3
-const trackDataBytes = sectorsPerTrack * diskSectorBytes
+const diskSectorBytes = 3 + 8 + 3 + 3 + 0x56 + 0x100 + 1 + 3 // Number of bytes one sector takes up on the disk
+const trackDataBytes = sectorsPerTrack * diskSectorBytes     // Number of bytes one track takes up on the disk
 
-var dos33SectorInterleaving [16]uint8
-var sixTwoEncoding [0x40]uint8  // Conversion of a 6 bit byte to a 8 bit "disk" byte
-var sixTwoDecoding [0x100]uint8 // Conversion of a 8 bit "disk" byte to a 6 bit byte
+var sectorInterleaving [16]uint8 // A map of physical to logical sector
+var sixTwoEncoding [0x40]uint8   // Conversion of a 6 bit byte to a 8 bit "disk" byte
+var sixTwoDecoding [0x100]uint8  // Conversion of a 8 bit "disk" byte to a 6 bit byte
 
 type sector struct {
 	data [0x100]uint8
@@ -61,11 +61,12 @@ type addressField struct {
 var lastReadAddress addressField
 var lastReadSectorDataPosition int
 
+// sectorWriteState keeps track of what write data has been received
 var sectorWriteState struct {
-	State           byte
-	RawData         [rawDataBufferSize]uint8
-	RawDataPosition uint16
-	Address         addressField
+	State           byte                     // waitingforDataPrologue or receivingData
+	RawData         [rawDataBufferSize]uint8 // data as it is being written
+	RawDataPosition uint16                   // position in RawData
+	Address         addressField             // address header of the last sector read
 }
 
 func resetsectorWriteState() {
@@ -73,25 +74,26 @@ func resetsectorWriteState() {
 	sectorWriteState.RawDataPosition = 0
 }
 
+// InitDiskImage sets up some mapping variables and resets the write state
 func InitDiskImage() {
 	// Map DOS 3.3 sector interleaving
 	// Physical sector -> Logical sector
-	dos33SectorInterleaving[0x0] = 0x0
-	dos33SectorInterleaving[0x1] = 0x7
-	dos33SectorInterleaving[0x2] = 0xe
-	dos33SectorInterleaving[0x3] = 0x6
-	dos33SectorInterleaving[0x4] = 0xd
-	dos33SectorInterleaving[0x5] = 0x5
-	dos33SectorInterleaving[0x6] = 0xc
-	dos33SectorInterleaving[0x7] = 0x4
-	dos33SectorInterleaving[0x8] = 0xb
-	dos33SectorInterleaving[0x9] = 0x3
-	dos33SectorInterleaving[0xa] = 0xa
-	dos33SectorInterleaving[0xb] = 0x2
-	dos33SectorInterleaving[0xc] = 0x9
-	dos33SectorInterleaving[0xd] = 0x1
-	dos33SectorInterleaving[0xe] = 0x8
-	dos33SectorInterleaving[0xf] = 0xf
+	sectorInterleaving[0x0] = 0x0
+	sectorInterleaving[0x1] = 0x7
+	sectorInterleaving[0x2] = 0xe
+	sectorInterleaving[0x3] = 0x6
+	sectorInterleaving[0x4] = 0xd
+	sectorInterleaving[0x5] = 0x5
+	sectorInterleaving[0x6] = 0xc
+	sectorInterleaving[0x7] = 0x4
+	sectorInterleaving[0x8] = 0xb
+	sectorInterleaving[0x9] = 0x3
+	sectorInterleaving[0xa] = 0xa
+	sectorInterleaving[0xb] = 0x2
+	sectorInterleaving[0xc] = 0x9
+	sectorInterleaving[0xd] = 0x1
+	sectorInterleaving[0xe] = 0x8
+	sectorInterleaving[0xf] = 0xf
 
 	// Zero disk image data
 	for t := 0; t < tracksPerDisk; t++ {
@@ -121,6 +123,7 @@ func InitDiskImage() {
 	resetsectorWriteState()
 }
 
+// InitDiskImage reads a disk image from file
 func ReadDiskImage(path string) {
 	imagePath = path
 
@@ -146,6 +149,7 @@ func ReadDiskImage(path string) {
 	imageIsDirty = false
 }
 
+// writeDiskImage writes a disk image to file
 func writeDiskImage() {
 	bytes := make([]byte, tracksPerDisk*sectorsPerTrack*0x100)
 
@@ -210,6 +214,7 @@ func sectorDataEncode(s sector) (data [0x56 + 0x100]uint8) {
 	return
 }
 
+// Convert 0x56 + 0x100 disk bytes into 0x100 sector bytes
 func sectorDataDecode(data []uint8) (sector [0x100]uint8) {
 	for i := 0; i < 0x100; i++ {
 		sector[i] = data[i+0x56]
@@ -236,8 +241,10 @@ func clearTrackData() {
 	}
 }
 
+// makeSectorData converts the in-memory image data to disk encoded data in
+// trackData for a given track and sector.
 func makeSectorData(track uint8, physicalSector uint8) {
-	logicalSector := dos33SectorInterleaving[physicalSector]
+	logicalSector := sectorInterleaving[physicalSector]
 	offset := int(physicalSector) * diskSectorBytes
 
 	volume := uint8(254) // Volume numbers aren't implemented
@@ -293,6 +300,7 @@ func makeSectorData(track uint8, physicalSector uint8) {
 	trackData[offset+17+0x56+0x100+3] = 0xeb
 }
 
+// MakeTrackData makes disk encoded data for a whole track when armPosition is even.
 func MakeTrackData(armPosition uint8) {
 	// Tracks are present on even arm positions.
 	track := uint8(armPosition / 2)
@@ -311,6 +319,8 @@ func MakeTrackData(armPosition uint8) {
 	}
 }
 
+// decodeAddressField decodes the 6 bytes from a disk encoded sector address
+// field into 3 byte volume, track and sector.
 func decodeAddressField(data []uint8) addressField {
 	var af addressField
 	af.volume = oddEvenDecode(data[0], data[1])
@@ -323,6 +333,10 @@ func decodeAddressField(data []uint8) addressField {
 func ReadTrackData() (result uint8) {
 	result = trackData[system.DriveState.BytePosition]
 
+	// If the head is far along enough in the track, see if the head is on a
+	// sector header and decode it. This is used by the write code since the
+	// write code has to know what track and sector the head has just gone
+	// past.
 	if system.DriveState.BytePosition >= 9 {
 		if trackData[system.DriveState.BytePosition-9] == 0xd5 &&
 			trackData[system.DriveState.BytePosition-8] == 0xaa &&
@@ -334,6 +348,7 @@ func ReadTrackData() (result uint8) {
 		}
 	}
 
+	// Go forward one byte and loop around.
 	system.DriveState.BytePosition++
 	if system.DriveState.BytePosition == trackDataBytes {
 		system.DriveState.BytePosition = 0
@@ -383,7 +398,7 @@ func WriteTrackData(value uint8) {
 		if sectorWriteState.RawDataPosition == 0x56+0x100 {
 			// We have the full sector data
 			physicalSector := lastReadAddress.sector
-			logicalSector := dos33SectorInterleaving[physicalSector]
+			logicalSector := sectorInterleaving[physicalSector]
 
 			// transform the data from disk bytes to 6-bytes and EOR it
 			a := uint8(0)
@@ -406,6 +421,7 @@ func WriteTrackData(value uint8) {
 	}
 }
 
+// FlushImage writes the disk image file if it's been written to.
 func FlushImage() {
 	if imageIsDirty {
 		writeDiskImage()
