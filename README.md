@@ -55,6 +55,22 @@ The tests use DOS and Prodos disk images. Download them from
 The CPU tests make use of [Klaus2m5's](https://github.com/Klaus2m5/6502_65C02_functional_tests)
  excellent 6502 functional tests.
 
+### Creating the CPU test ROMs
+
+The source files are `6502_functional_test.a65` and `6502_interrupt_test.a65`. They are assembled using `as65` into a binary file which contains a memory image of the test code. They are compressed into gzip files which are loaded into the apple memory by the unit tests. 
+
+Download [as65](http://www.kingswood-consulting.co.uk/assemblers/as65_142.zip) and unzip it to get the `as65` assembler binary.
+
+Assemble the tests
+
+    cd cpu
+    as65 -l -m -w -h0 6502_functional_test.a65
+    gzip 6502_functional_test.bin
+
+    as65 -l -m -w -h0 6502_interrupt_test.a65
+    gzip 6502_interrupt_test.bin
+
+
 ## Known working disk images
 * DOS 3.3
 * Prodos 1.9
