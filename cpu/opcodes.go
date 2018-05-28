@@ -311,6 +311,7 @@ func initOpCodes() {
 	opCodes[0xFF] = opCode{mnemonic: "???", addressingMode: addressingModes[amExpansion]}
 }
 
+// InitInstructionDecoder initializes tables used for the instruction decoding
 func InitInstructionDecoder() {
 	initAddressingModes()
 	initOpCodes()

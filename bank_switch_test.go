@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func assertMemoryConfiguration(t *testing.T, address uint16, upperRamReadOnly bool, upperReadMappedToROM bool, d000Bank int) {
+func assertMemoryConfiguration(t *testing.T, address uint16, upperRAMReadOnly bool, upperReadMappedToROM bool, d000Bank int) {
 	mmu.WriteMemory(address, 0x00)
-	assert.Equal(t, upperRamReadOnly, mmu.UpperRamReadOnly)
+	assert.Equal(t, upperRAMReadOnly, mmu.UpperRAMReadOnly)
 	assert.Equal(t, upperReadMappedToROM, mmu.UpperReadMappedToROM)
 	assert.Equal(t, d000Bank, mmu.D000Bank)
 }
@@ -67,7 +67,7 @@ func TestBankSwitching(t *testing.T) {
 
 	// Set d000 RAM to bank 1, RAM to read only and attempt writes
 	mmu.SetD000Bank(1)
-	mmu.SetUpperRamReadOnly(true)
+	mmu.SetUpperRAMReadOnly(true)
 	assert.Equal(t, uint8(0xfd), mmu.PhysicalMemory.MainMemory[0xc000]) // bank #1 RAM
 	assert.Equal(t, uint8(0xfe), mmu.PhysicalMemory.MainMemory[0xd000]) // bank #2 RAM
 	mmu.WriteMemory(0xd000, 0x01)                                       // attempt to write to read only RAM
@@ -77,7 +77,7 @@ func TestBankSwitching(t *testing.T) {
 	assert.Equal(t, uint8(0xff), mmu.PhysicalMemory.MainMemory[0xffff]) // top of RAM is unchanged
 
 	// Set RAM to write and write to it
-	mmu.SetUpperRamReadOnly(false)
+	mmu.SetUpperRAMReadOnly(false)
 	mmu.WriteMemory(0xd000, 0xfc)                                       // write to RAM
 	mmu.WriteMemory(0xffff, 0xfb)                                       // write to RAM
 	assert.Equal(t, uint8(0xfc), mmu.PhysicalMemory.MainMemory[0xc000]) // bank #1 RAM has been updated

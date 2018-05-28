@@ -12,9 +12,11 @@ import (
 )
 
 const (
-	ScreenSizeFactor = 1     // Factor by which the whole screen is resized
-	textVideoMemory  = 0x400 // Base location of page 1 text video memory
-	flashFrames      = 11    // Number of frames when FLASH mode is toggled
+	// ScreenSizeFactor is the fFactor by which the whole screen is resized
+	ScreenSizeFactor = 1
+
+	textVideoMemory = 0x400 // Base location of page 1 text video memory
+	flashFrames     = 11    // Number of frames when FLASH mode is toggled
 )
 
 // drawTextLoresByte is a function definition used for mixed text/lores rendering
@@ -25,7 +27,9 @@ var (
 	flashCounter int               // Counter used for flashing characters on the text screen
 	flashOn      bool              // Are we currently flashing?
 	loresSquares [16]*ebiten.Image // Colored blocks for lores rendering
-	ShowFPS      bool              // Show FPS in corner?
+
+	// ShowFPS determines if the FPS is shown in the corner of the video
+	ShowFPS bool
 )
 
 // initTextCharMap initializes the text character map
@@ -130,7 +134,7 @@ func drawText(screen *ebiten.Image, x int, y int, value uint8) error {
 // drawLores draws two colored lores squares at the equivalent text location x,y.
 func drawLores(screen *ebiten.Image, x int, y int, value uint8) error {
 	// Convert the 8 bit value to two 4 bit values
-	var values [2]uint8 = [2]uint8{value & 0xf, value >> 4}
+	var values = [2]uint8{value & 0xf, value >> 4}
 
 	// Render top & bottom squares
 	for i := 0; i < 2; i++ {

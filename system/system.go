@@ -4,22 +4,46 @@ package system
 // the packages.
 
 const (
-	CpuFrequency    = 1023000 // 6402 CPU frequency in Hz
-	AudioSampleRate = 44100   // Audio sample rate in Hz
+	// CPUFrequency is the 6502 CPU frequency in Hz
+	CPUFrequency = 1023000
+
+	// AudioSampleRate is the audio sample rate in Hz
+	AudioSampleRate = 44100
 )
 
 var (
-	PendingInterrupt        bool       // Set when an interrupt has just happened
-	PendingNMI              bool       // Set when a non maskable interrupt has just happened
-	RunningTests            bool       // For testing
-	RunningFunctionalTests  bool       // For testing
-	RunningInterruptTests   bool       // For testing
-	Cycles                  uint64     // Total CPU cycles executed
-	FrameCycles             uint64     // CPU cycles executed in the current frame
-	AudioChannel            chan int16 // Audio channel
-	LastAudioValue          int16      // + or - value of the current square wave
-	LastAudioCycles         uint64     // Last CPU cycle when audio was sent to the channel
-	AudioAttenuationCounter uint64     // Counter to keep track of when the audio should be zeroed after inactivity
+	// PendingInterrupt is set when an interrupt has just happened
+	PendingInterrupt bool
+
+	// PendingNMI is set when a non maskable interrupt has just happened
+	PendingNMI bool
+
+	// RunningTests is set when  tests are running
+	RunningTests bool
+
+	// RunningFunctionalTests is set when functional tests are running
+	RunningFunctionalTests bool
+
+	// RunningInterruptTests is set when interupt tests are running
+	RunningInterruptTests bool
+
+	// Cycles is the total CPU cycles executed
+	Cycles uint64
+
+	// FrameCycles is the CPU cycles executed in the current frame
+	FrameCycles uint64
+
+	// AudioChannel is the audio channel used to produce and consume audio samples between the cpu and audio packages
+	AudioChannel chan int16
+
+	// LastAudioValue is the + or - value of the current square wave
+	LastAudioValue int16
+
+	// LastAudioCycles is the ast CPU cycle when audio was sent to the channel
+	LastAudioCycles uint64
+
+	// AudioAttenuationCounter is a counter to keep track of when the audio should be zeroed after inactivity
+	AudioAttenuationCounter uint64
 )
 
 // DriveState has the state of the disk drive
@@ -40,7 +64,7 @@ func Init() {
 	LastAudioValue = 0x2000
 }
 
-// Handle a write to a magic test address that triggers an interrupt and/or an NMI
+// WriteInterruptTestOpenCollector handles a write to a magic test address that triggers an interrupt and/or an NMI
 func WriteInterruptTestOpenCollector(address uint16, oldValue uint8, value uint8) {
 	oldInterrupt := (oldValue & 0x1) == 0x1
 	oldNMI := (oldValue & 0x2) == 0x2

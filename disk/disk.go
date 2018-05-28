@@ -123,7 +123,7 @@ func InitDiskImage() {
 	resetsectorWriteState()
 }
 
-// InitDiskImage reads a disk image from file
+// ReadDiskImage reads a disk image from file
 func ReadDiskImage(path string) {
 	imagePath = path
 
@@ -329,7 +329,7 @@ func decodeAddressField(data []uint8) addressField {
 	return af
 }
 
-// Read a byte from the disk head and spin the disk along
+// ReadTrackData reads a byte from the disk head and spins the disk along
 func ReadTrackData() (result uint8) {
 	result = trackData[system.DriveState.BytePosition]
 
@@ -377,7 +377,7 @@ func WriteTrackData(value uint8) {
 		}
 
 		sectorWriteState.RawData[sectorWriteState.RawDataPosition] = value
-		sectorWriteState.RawDataPosition += 1
+		sectorWriteState.RawDataPosition++
 
 		// Check for address prologue
 		if sectorWriteState.RawDataPosition > 2 && sectorWriteState.RawData[sectorWriteState.RawDataPosition-3] == 0xd5 &&
@@ -393,7 +393,7 @@ func WriteTrackData(value uint8) {
 
 	} else if sectorWriteState.State == receivingData {
 		sectorWriteState.RawData[sectorWriteState.RawDataPosition] = value
-		sectorWriteState.RawDataPosition += 1
+		sectorWriteState.RawDataPosition++
 
 		if sectorWriteState.RawDataPosition == 0x56+0x100 {
 			// We have the full sector data

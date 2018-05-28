@@ -14,83 +14,83 @@ import (
 // https://github.com/cmosher01/Apple-II-Platform/blob/master/asminclude/iorom.asm
 
 const (
-	KEYBOARD = 0xC000 // keyboard data (latched) (RD-only)
-	CLR80COL = 0xC000 // use 80-column memory mapping (WR-only)
-	SET80COL = 0xC001
-	CLRAUXRD = 0xC002 // read from auxilliary 48K
-	SETAUXRD = 0xC003
-	CLRAUXWR = 0xC004 // write to auxilliary 48K
-	SETAUXWR = 0xC005
-	CLRCXROM = 0xC006 // use external slot ROM
-	SETCXROM = 0xC007
-	CLRAUXZP = 0xC008 // use auxilliary ZP, stack, & LC
-	SETAUXZP = 0xC009
-	CLRC3ROM = 0xC00A // use external slot C3 ROM
-	SETC3ROM = 0xC00B
-	CLR80VID = 0xC00C // use 80-column display mode
-	SET80VID = 0xC00D
-	CLRALTCH = 0xC00E // use alternate character set ROM
-	SETALTCH = 0xC00F
-	STROBE   = 0xC010 // strobe (unlatch) keyboard data
+	mKEYBOARD = 0xC000 // keyboard data (latched) (RD-only)
+	mCLR80COL = 0xC000 // use 80-column memory mapping (WR-only)
+	mSET80COL = 0xC001
+	mCLRAUXRD = 0xC002 // read from auxilliary 48K
+	mSETAUXRD = 0xC003
+	mCLRAUXWR = 0xC004 // write to auxilliary 48K
+	mSETAUXWR = 0xC005
+	mCLRCXROM = 0xC006 // use external slot ROM
+	mSETCXROM = 0xC007
+	mCLRAUXZP = 0xC008 // use auxilliary ZP, stack, & LC
+	mSETAUXZP = 0xC009
+	mCLRC3ROM = 0xC00A // use external slot C3 ROM
+	mSETC3ROM = 0xC00B
+	mCLR80VID = 0xC00C // use 80-column display mode
+	mSET80VID = 0xC00D
+	mCLRALTCH = 0xC00E // use alternate character set ROM
+	mSETALTCH = 0xC00F
+	mSTROBE   = 0xC010 // strobe (unlatch) keyboard data
 
-	RDLCBNK2 = 0xC011 // reading from LC bank $Dx 2
-	RDLCRAM  = 0xC012 // reading from LC RAM
-	RDRAMRD  = 0xC013 // reading from auxilliary 48K
-	RDRAMWR  = 0xC014 // writing to auxilliary 48K
-	RDCXROM  = 0xC015 // using external slot ROM
-	RDAUXZP  = 0xC016 // using auxilliary ZP, stack, & LC
-	RDC3ROM  = 0xC017 // using external slot C3 ROM
-	RD80COL  = 0xC018 // using 80-column memory mapping
-	RDVBLBAR = 0xC019 // not VBL (VBL signal low)
-	RDTEXT   = 0xC01A // using text mode
-	RDMIXED  = 0xC01B // using mixed mode
-	RDPAGE2  = 0xC01C // using text/graphics page2
-	RDHIRES  = 0xC01D // using Hi-res graphics mode
-	RDALTCH  = 0xC01E // using alternate character set ROM
-	RD80VID  = 0xC01F // using 80-column display mode
-	SPEAKER  = 0xC030 // toggle speaker diaphragm
+	mRDLCBNK2 = 0xC011 // reading from LC bank $Dx 2
+	mRDLCRAM  = 0xC012 // reading from LC RAM
+	mRDRAMRD  = 0xC013 // reading from auxilliary 48K
+	mRDRAMWR  = 0xC014 // writing to auxilliary 48K
+	mRDCXROM  = 0xC015 // using external slot ROM
+	mRDAUXZP  = 0xC016 // using auxilliary ZP, stack, & LC
+	mRDC3ROM  = 0xC017 // using external slot C3 ROM
+	mRD80COL  = 0xC018 // using 80-column memory mapping
+	mRDVBLBAR = 0xC019 // not VBL (VBL signal low)
+	mRDTEXT   = 0xC01A // using text mode
+	mRDMIXED  = 0xC01B // using mixed mode
+	mRDPAGE2  = 0xC01C // using text/graphics page2
+	mRDHIRES  = 0xC01D // using Hi-res graphics mode
+	mRDALTCH  = 0xC01E // using alternate character set ROM
+	mRD80VID  = 0xC01F // using 80-column display mode
+	mSPEAKER  = 0xC030 // toggle speaker diaphragm
 
-	CLRTEXT  = 0xC050 // enable text-only mode
-	SETTEXT  = 0xC051
-	CLRMIXED = 0xC052 // enable graphics/text mixed mode
-	SETMIXED = 0xC053
-	TXTPAGE1 = 0xC054 // select page1/2 (or page1/1x)
-	TXTPAGE2 = 0xC055
-	CLRHIRES = 0xC056 // enable Hi-res graphics
-	SETHIRES = 0xC057
+	mCLRTEXT  = 0xC050 // enable text-only mode
+	mSETTEXT  = 0xC051
+	mCLRMIXED = 0xC052 // enable graphics/text mixed mode
+	mSETMIXED = 0xC053
+	mTXTPAGE1 = 0xC054 // select page1/2 (or page1/1x)
+	mTXTPAGE2 = 0xC055
+	mCLRHIRES = 0xC056 // enable Hi-res graphics
+	mSETHIRES = 0xC057
 
-	SETAN0 = 0xC058 // 4-bit annunciator inputs
-	CLRAN0 = 0xC059
-	SETAN1 = 0xC05A
-	CLRAN1 = 0xC05B
-	SETAN2 = 0xC05C
-	CLRAN2 = 0xC05D
-	SETAN3 = 0xC05E
-	CLRAN3 = 0xC05F
+	mSETAN0 = 0xC058 // 4-bit annunciator inputs
+	mCLRAN0 = 0xC059
+	mSETAN1 = 0xC05A
+	mCLRAN1 = 0xC05B
+	mSETAN2 = 0xC05C
+	mCLRAN2 = 0xC05D
+	mSETAN3 = 0xC05E
+	mCLRAN3 = 0xC05F
 
-	OPNAPPLE = 0xC061 // open apple (command) key data
-	CLSAPPLE = 0xC062 // closed apple (option) key data
-	STATEREG = 0xC068 // Has no effect on //e
+	mOPNAPPLE = 0xC061 // open apple (command) key data
+	mCLSAPPLE = 0xC062 // closed apple (option) key data
+	mSTATEREG = 0xC068 // Has no effect on //e
 
-	PDLTRIG = 0xC070 // trigger paddles
+	mPDLTRIG = 0xC070 // trigger paddles
 
 	// Slot 6 Drive IO
-	S6CLRDRVP0 = 0xC0E0 // stepper phase 0  (Q0)
-	S6SETDRVP0 = 0xC0E1 //
-	S6CLRDRVP1 = 0xC0E2 // stepper phase 1  (Q1)
-	S6SETDRVP1 = 0xC0E3 //
-	S6CLRDRVP2 = 0xC0E4 // stepper phase 2  (Q2)
-	S6SETDRVP2 = 0xC0E5 //
-	S6CLRDRVP3 = 0xC0E6 // stepper phase 3  (Q3)
-	S6SETDRVP3 = 0xC0E7 //
-	S6MOTOROFF = 0xC0E8 // drive motor      (Q4)
-	S6MOTORON  = 0xC0E9 //
-	S6SELDRV1  = 0xC0EA // drive select     (Q5)
-	S6SELDRV2  = 0xC0EB //
-	S6Q6L      = 0xC0EC // read             (Q6)
-	S6Q6H      = 0xC0ED // WP sense
-	S6Q7L      = 0xC0EE // WP sense/read    (Q7)
-	S6Q7H      = 0xC0EF // write
+	mS6CLRDRVP0 = 0xC0E0 // stepper phase 0  (Q0)
+	mS6SETDRVP0 = 0xC0E1 //
+	mS6CLRDRVP1 = 0xC0E2 // stepper phase 1  (Q1)
+	mS6SETDRVP1 = 0xC0E3 //
+	mS6CLRDRVP2 = 0xC0E4 // stepper phase 2  (Q2)
+	mS6SETDRVP2 = 0xC0E5 //
+	mS6CLRDRVP3 = 0xC0E6 // stepper phase 3  (Q3)
+	mS6SETDRVP3 = 0xC0E7 //
+	mS6MOTOROFF = 0xC0E8 // drive motor      (Q4)
+	mS6MOTORON  = 0xC0E9 //
+	mS6SELDRV1  = 0xC0EA // drive select     (Q5)
+	mS6SELDRV2  = 0xC0EB //
+	mS6Q6L      = 0xC0EC // read             (Q6)
+	mS6Q6H      = 0xC0ED // WP sense
+	mS6Q7L      = 0xC0EE // WP sense/read    (Q7)
+	mS6Q7H      = 0xC0EF // write
 )
 
 // VideoState has 3 booleans which determine the video configuration:
@@ -106,6 +106,7 @@ var VideoState struct {
 	Mixed     bool
 }
 
+// InitIO resets all IO states
 func InitIO() {
 	// Empty slots that aren't yet implemented
 	emptySlot(3)
@@ -138,81 +139,81 @@ func readWrite(address uint16, isRead bool) bool {
 	}
 
 	switch address {
-	case CLRAUXRD:
+	case mCLRAUXRD:
 		SetFakeAuxMemoryRead(false)
 		return true
-	case SETAUXRD:
+	case mSETAUXRD:
 		SetFakeAuxMemoryRead(true)
 		return true
 
-	case CLRAUXWR:
+	case mCLRAUXWR:
 		SetFakeAuxMemoryWrite(false)
 		return true
-	case SETAUXWR:
+	case mSETAUXWR:
 		SetFakeAuxMemoryWrite(true)
 		return true
 
-	case CLRAUXZP:
+	case mCLRAUXZP:
 		SetFakeAltZP(false)
 		return true
-	case SETAUXZP:
+	case mSETAUXZP:
 		SetFakeAltZP(true)
 		return true
 
-	case CLR80VID:
+	case mCLR80VID:
 		SetCol80(false)
 		return true
-	case SET80VID:
+	case mSET80VID:
 		SetCol80(true)
 		return true
 
-	case TXTPAGE1:
+	case mTXTPAGE1:
 		SetPage2(false)
 		return true
-	case TXTPAGE2:
+	case mTXTPAGE2:
 		SetPage2(true)
 		return true
 
-	case CLRTEXT:
+	case mCLRTEXT:
 		VideoState.TextMode = false
 		return true
-	case SETTEXT:
+	case mSETTEXT:
 		VideoState.TextMode = true
 		return true
 
-	case CLRMIXED:
+	case mCLRMIXED:
 		VideoState.Mixed = false
 		return true
-	case SETMIXED:
+	case mSETMIXED:
 		VideoState.Mixed = true
 		return true
 
-	case CLRHIRES:
+	case mCLRHIRES:
 		VideoState.HiresMode = false
 		return true
-	case SETHIRES:
+	case mSETHIRES:
 		VideoState.HiresMode = true
 		return true
 
-	case CLR80COL:
+	case mCLR80COL:
 		if !isRead {
 			SetStore80(false)
 			return true
-		} else {
-			return false
 		}
-	case SET80COL:
+		return false
+
+	case mSET80COL:
 		SetStore80(true)
 		return true
 
-	case STATEREG:
+	case mSTATEREG:
 		// Ignore not implemented memory management reg
 		return true
 
 	// Drive stepper motor phase change
-	case S6CLRDRVP0, S6SETDRVP0, S6CLRDRVP1, S6SETDRVP1, S6CLRDRVP2, S6SETDRVP2, S6CLRDRVP3, S6SETDRVP3:
-		magnet := (address - S6CLRDRVP0) / 2
-		on := ((address - S6CLRDRVP0) % 2) == 1
+	case mS6CLRDRVP0, mS6SETDRVP0, mS6CLRDRVP1, mS6SETDRVP1, mS6CLRDRVP2, mS6SETDRVP2, mS6CLRDRVP3, mS6SETDRVP3:
+		magnet := (address - mS6CLRDRVP0) / 2
+		on := ((address - mS6CLRDRVP0) % 2) == 1
 		if !on {
 			// Turn off the magnet in Phases
 			system.DriveState.Phases &= ^(1 << magnet)
@@ -225,10 +226,10 @@ func readWrite(address uint16, isRead bool) bool {
 		// Move head if a neighboring magnet is on and all others are off
 		direction := int8(0)
 		if (system.DriveState.Phases & (1 << uint8((system.DriveState.Phase+1)&3))) != 0 {
-			direction += 1
+			direction++
 		}
 		if (system.DriveState.Phases & (1 << uint8((system.DriveState.Phase+3)&3))) != 0 {
-			direction -= 1
+			direction--
 		}
 
 		// Move the head
@@ -251,37 +252,37 @@ func readWrite(address uint16, isRead bool) bool {
 
 		return true
 
-	case S6MOTOROFF:
+	case mS6MOTOROFF:
 		system.DriveState.Spinning = false
 		return true
-	case S6MOTORON:
+	case mS6MOTORON:
 		system.DriveState.Spinning = true
 		return true
 
-	case S6SELDRV1:
+	case mS6SELDRV1:
 		system.DriveState.Drive = 1
 		return true
-	case S6SELDRV2:
+	case mS6SELDRV2:
 		system.DriveState.Drive = 2
 		return true
 
-	case S6Q6L:
+	case mS6Q6L:
 		if !isRead {
 			system.DriveState.Q6 = false
 			return true
 		}
 		return false
-	case S6Q6H:
+	case mS6Q6H:
 		if isRead {
 			system.DriveState.Q6 = true
 			return true
 		}
 		return false
 
-	case S6Q7L:
+	case mS6Q7L:
 		system.DriveState.Q7 = false
 		return true
-	case S6Q7H:
+	case mS6Q7H:
 		system.DriveState.Q7 = true
 		return true
 
@@ -299,64 +300,60 @@ func ReadIO(address uint16) uint8 {
 
 	switch address {
 
-	case KEYBOARD, STROBE:
+	case mKEYBOARD, mSTROBE:
 		keyBoardData, strobe := keyboard.Read()
-		if address == KEYBOARD {
+		if address == mKEYBOARD {
 			return keyBoardData
-		} else {
-			keyboard.ResetStrobe()
-			return strobe
 		}
+		keyboard.ResetStrobe()
+		return strobe
 
-	case RDRAMRD, RDRAMWR, RDAUXZP:
+	case mRDRAMRD, mRDRAMWR, mRDAUXZP:
 		panic("Read/write aux memory not implemented")
 		return 0x0d
 
-	case RDCXROM:
+	case mRDCXROM:
 		if UsingExternalSlotRom {
 			return 0x8d
-		} else {
-			return 0x0d
 		}
+		return 0x0d
 
-	case RD80VID:
+	case mRD80VID:
 		// using 80-column display mode not implemented
 		return 0x0d
 
-	case RDPAGE2:
+	case mRDPAGE2:
 		if Page2 {
 			return 0x8d
-		} else {
-			return 0x0d
 		}
+		return 0x0d
 
 	// 4-bit annunciator inputs
-	case SETAN0, CLRAN0, SETAN1, CLRAN1, SETAN2, CLRAN2, SETAN3, CLRAN3:
+	case mSETAN0, mCLRAN0, mSETAN1, mCLRAN1, mSETAN2, mCLRAN2, mSETAN3, mCLRAN3:
 		// Annunciators not implemented
 
-	case OPNAPPLE:
+	case mOPNAPPLE:
 		// Open apple key not implemented
 		return 0
 
-	case CLSAPPLE:
+	case mCLSAPPLE:
 		// Closed apple key not implemented
 
-	case RD80COL:
+	case mRD80COL:
 		if Store80 {
 			return 0x8d
-		} else {
-			return 0x0d
 		}
+		return 0x0d
 
-	case RDALTCH:
+	case mRDALTCH:
 		// RDALTCH not implemented, but it's also used, so don't fail on it.
 		return 0x0d
 
-	case SPEAKER:
+	case mSPEAKER:
 		audio.Click()
 		return 0
 
-	case S6Q6L:
+	case mS6Q6L:
 		// A read from disk
 		return disk.ReadTrackData()
 
@@ -367,7 +364,7 @@ func ReadIO(address uint16) uint8 {
 	return 0
 }
 
-// ReadIO does a write in the $c000-$c0ff area
+// WriteIO does a write in the $c000-$c0ff area
 func WriteIO(address uint16, value uint8) {
 	// Try the generic readWrite and return if it has handled the write
 	if readWrite(address, false) {
@@ -376,29 +373,29 @@ func WriteIO(address uint16, value uint8) {
 
 	switch address {
 
-	case STROBE:
+	case mSTROBE:
 		keyboard.ResetStrobe()
 
-	case CLRCXROM:
+	case mCLRCXROM:
 		MapFirstHalfOfIO()
-	case SETCXROM:
+	case mSETCXROM:
 		MapSecondHalfOfIO()
 
-	case CLRALTCH:
+	case mCLRALTCH:
 		return
-	case SETALTCH:
+	case mSETALTCH:
 		panic("SETALTCH not implemented")
 
-	case CLR80COL:
+	case mCLR80COL:
 		// CLR80COL not implemented
 		return
 
-	case CLRC3ROM:
+	case mCLRC3ROM:
 		// CLRC3ROM not implemented
-	case SETC3ROM:
+	case mSETC3ROM:
 		// SETC3ROM not implemented
 
-	case S6Q6H:
+	case mS6Q6H:
 		// A write to disk
 		disk.WriteTrackData(value)
 

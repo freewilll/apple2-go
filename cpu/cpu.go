@@ -9,16 +9,17 @@ import (
 )
 
 const (
-	CpuFlagC byte = 1 << iota // 0x01 carry
-	CpuFlagZ                  // 0x02 zero
-	CpuFlagI                  // 0x04 interrupt disable
-	CpuFlagD                  // 0x08 decimal mode
-	CpuFlagB                  // 0x10 break
-	CpuFlagR                  // 0x20 reserved (unused)
-	CpuFlagV                  // 0x40 overflow
-	CpuFlagN                  // 0x80 sign/negative
+	cpuFlagC byte = 1 << iota // 0x01 carry
+	cpuFlagZ                  // 0x02 zero
+	cpuFlagI                  // 0x04 interrupt disable
+	cpuFlagD                  // 0x08 decimal mode
+	cpuFlagB                  // 0x10 break
+	cpuFlagR                  // 0x20 reserved (unused)
+	cpuFlagV                  // 0x40 overflow
+	cpuFlagN                  // 0x80 sign/negative
 )
 
+// State contains the CPU state
 var State struct {
 	A  uint8  // accumulator
 	X  uint8  // X register
@@ -40,70 +41,70 @@ func Init() {
 	State.A = 0
 	State.X = 0
 	State.Y = 0
-	State.P = CpuFlagR | CpuFlagB | CpuFlagZ
+	State.P = cpuFlagR | cpuFlagB | cpuFlagZ
 	State.SP = 0xff
 }
 
 // setC sets the carry flag
 func setC(value bool) {
 	if value {
-		State.P |= CpuFlagC
+		State.P |= cpuFlagC
 	} else {
-		State.P &= ^CpuFlagC
+		State.P &= ^cpuFlagC
 	}
 }
 
 // setV sets the overflow flag
 func setV(value bool) {
 	if value {
-		State.P |= CpuFlagV
+		State.P |= cpuFlagV
 	} else {
-		State.P &= ^CpuFlagV
+		State.P &= ^cpuFlagV
 	}
 }
 
 // setN sets the sign/negative flag if the value is negative (>=0x80)
 func setN(value uint8) {
 	if (value & 0x80) != 0 {
-		State.P |= CpuFlagN
+		State.P |= cpuFlagN
 	} else {
-		State.P &= ^CpuFlagN
+		State.P &= ^cpuFlagN
 	}
 }
 
 // setZ sets the zero flag if the value is zero
 func setZ(value uint8) {
 	if value == 0 {
-		State.P |= CpuFlagZ
+		State.P |= cpuFlagZ
 	} else {
-		State.P &= ^CpuFlagZ
+		State.P &= ^cpuFlagZ
 	}
 }
 
 func isC() bool {
-	return (State.P & CpuFlagC) != 0
+	return (State.P & cpuFlagC) != 0
 }
 
 func isZ() bool {
-	return (State.P & CpuFlagZ) != 0
+	return (State.P & cpuFlagZ) != 0
 }
 
 func isD() bool {
-	return (State.P & CpuFlagD) != 0
+	return (State.P & cpuFlagD) != 0
 }
 
 func isV() bool {
-	return (State.P & CpuFlagV) != 0
+	return (State.P & cpuFlagV) != 0
 }
 
 func isN() bool {
-	return (State.P & CpuFlagN) != 0
+	return (State.P & cpuFlagN) != 0
 }
 
 // push8 pushes an 8 bit value to the stack
 func push8(value uint8) {
 	mmu.WritePageTable[mmu.StackPage][State.SP] = value
-	State.SP -= 1
+	State.SP--
 	State.SP &= 0xff
 }
 
@@ -117,7 +118,7 @@ func push16(value uint16) {
 
 // pop8 pulls an 8 bit value from the stack
 func pop8() uint8 {
-	State.SP += 1
+	State.SP++
 	State.SP &= 0xff
 	return mmu.ReadPageTable[mmu.StackPage][State.SP]
 }
@@ -153,7 +154,7 @@ func branch(doBranch bool) {
 		// The number of cycles depends on if a page boundary was crossed
 		samePage := (State.PC & 0xff00) == (relativeAddress & 0xff00)
 		if samePage {
-			system.FrameCycles += 1
+			system.FrameCycles++
 		} else {
 			system.FrameCycles += 2
 		}
@@ -479,7 +480,7 @@ func postProcessShift(addressMode byte, address uint16, value uint8) {
 	switch addressMode {
 	case amAccumulator:
 		State.A = value
-		State.PC += 1
+		State.PC++
 		system.FrameCycles += 2
 	case amZeroPage:
 		mmu.WriteMemory(address, value)
@@ -523,27 +524,27 @@ func postProcessIncDec(addressMode byte) {
 
 func brk() {
 	push16(State.PC + 2)
-	State.P |= CpuFlagB
+	State.P |= cpuFlagB
 	push8(State.P)
-	State.P |= CpuFlagI
+	State.P |= cpuFlagI
 	State.PC = uint16(mmu.ReadMemory(0xffff))<<8 + uint16(mmu.ReadMemory(0xfffe))
 	system.FrameCycles += 7
 }
 
 func irq() {
 	push16(State.PC)
-	State.P &= ^CpuFlagB
+	State.P &= ^cpuFlagB
 	push8(State.P)
-	State.P |= CpuFlagI
+	State.P |= cpuFlagI
 	State.PC = uint16(mmu.ReadMemory(0xffff))<<8 + uint16(mmu.ReadMemory(0xfffe))
 	system.FrameCycles += 7
 }
 
 func nmi() {
 	push16(State.PC)
-	State.P &= ^CpuFlagB
+	State.P &= ^cpuFlagB
 	push8(State.P)
-	State.P |= CpuFlagI
+	State.P |= cpuFlagI
 	State.PC = uint16(mmu.ReadMemory(0xfffb))<<8 + uint16(mmu.ReadMemory(0xfffa))
 	system.FrameCycles += 7
 }
@@ -572,7 +573,7 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 		}
 
 		// Handle an IRQ f there is one pending and interrupts are enabled
-		if system.PendingInterrupt && ((State.P & CpuFlagI) == 0) {
+		if system.PendingInterrupt && ((State.P & cpuFlagI) == 0) {
 			irq()
 			system.PendingInterrupt = false
 			continue
@@ -761,23 +762,23 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 			State.PC++
 			system.FrameCycles += 2
 		case 0x58: // CLI
-			State.P &= ^CpuFlagI
+			State.P &= ^cpuFlagI
 			State.PC++
 			system.FrameCycles += 2
 		case 0x78: // SEI
-			State.P |= CpuFlagI
+			State.P |= cpuFlagI
 			State.PC++
 			system.FrameCycles += 2
 		case 0xb8: // CLV
-			State.P &= ^CpuFlagV
+			State.P &= ^cpuFlagV
 			State.PC++
 			system.FrameCycles += 2
 		case 0xd8: // CLD
-			State.P &= ^CpuFlagD
+			State.P &= ^cpuFlagD
 			State.PC++
 			system.FrameCycles += 2
 		case 0xf8: //SED
-			State.P |= CpuFlagD
+			State.P |= cpuFlagD
 			State.PC++
 			system.FrameCycles += 2
 
@@ -795,12 +796,12 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 		case 0x08: // PHP
 			// From http://visual6502.org/wiki/index.php?title=6502_BRK_and_B_bit#the_B_flag_and_the_various_mechanisms
 			// software instructions BRK & PHP will push the B flag as being 1.
-			push8(State.P | CpuFlagB)
+			push8(State.P | cpuFlagB)
 			State.PC++
 			system.FrameCycles += 3
 		case 0x28: // PLP
-			// CpuFlagR is always supposed to be 1
-			State.P = pop8() | CpuFlagR
+			// cpuFlagR is always supposed to be 1
+			State.P = pop8() | cpuFlagR
 			State.PC++
 			system.FrameCycles += 4
 		case 0xea:
@@ -810,7 +811,7 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 		case 0x00: // BRK
 			brk()
 		case 0x40: // RTI
-			State.P = pop8() | CpuFlagR
+			State.P = pop8() | cpuFlagR
 			value := pop16()
 			State.PC = value
 			system.FrameCycles += 6
@@ -845,7 +846,7 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 			address, value := preProcessShift(addressMode)
 			value16 := uint16(value)
 			value16 <<= 1
-			if (State.P & CpuFlagC) != 0 {
+			if (State.P & cpuFlagC) != 0 {
 				value16 |= 0x01
 			}
 			setC((value16 & 0x100) != 0)
@@ -856,7 +857,7 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 		case 0x6a, 0x66, 0x76, 0x6e, 0x7e: // ROR
 			address, value := preProcessShift(addressMode)
 			value16 := uint16(value)
-			if (State.P & CpuFlagC) != 0 {
+			if (State.P & cpuFlagC) != 0 {
 				value16 |= 0x100
 			}
 			setC((value16 & 0x01) != 0)

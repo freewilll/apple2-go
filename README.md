@@ -83,3 +83,13 @@ Assemble the tests
 * 48k aux memory
 * double hires
 * joystick
+
+## Coding standards
+
+Use `gofmt` to ensure standard go style consistency
+
+     go fmt $(go list ./... | grep -v /vendor/)
+
+Use `golint` to ensure Google's style consistency
+
+    golint $(go list ./...)

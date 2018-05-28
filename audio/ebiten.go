@@ -10,11 +10,17 @@ import (
 )
 
 var (
-	audioContext            *ebiten_audio.Context // Ebitem audio context
-	player                  *ebiten_audio.Player  // Ebitem stream player
-	firstAudio              bool                  // True at startup
-	Mute                    bool                  // Mute
-	ClickWhenDriveHeadMoves bool                  // Click speaker when the drive head moves
+	audioContext *ebiten_audio.Context // Ebitem audio context
+	player       *ebiten_audio.Player  // Ebitem stream player
+	firstAudio   bool                  // True at startup
+)
+
+var (
+	// Mute ensures no samples are output
+	Mute bool
+
+	// ClickWhenDriveHeadMoves makes the speaker click once every time the stepper motor magnets change
+	ClickWhenDriveHeadMoves bool
 )
 
 // The streaming code is based on the ebiten sinewave example

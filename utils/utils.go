@@ -60,7 +60,7 @@ func RunUntilBreakPoint(t *testing.T, breakAddress uint16, seconds int, showInst
 	system.LastAudioCycles = 0
 	exitAtBreak := false
 	disableFirmwareWait := false
-	cpu.Run(showInstructions, &breakAddress, exitAtBreak, disableFirmwareWait, uint64(system.CpuFrequency*seconds))
+	cpu.Run(showInstructions, &breakAddress, exitAtBreak, disableFirmwareWait, uint64(system.CPUFrequency*seconds))
 	if cpu.State.PC != breakAddress {
 		t.Fatalf("Did not reach breakpoint at %04x. Got to %04x", breakAddress, cpu.State.PC)
 	}

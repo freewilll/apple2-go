@@ -29,14 +29,14 @@ func printInstruction(instruction string, showRegisters bool) {
 			State.P,
 		)
 
-		printFlag(State.P, CpuFlagN, "n")
-		printFlag(State.P, CpuFlagV, "v")
-		fmt.Print("-") // CpuFlagR flag that's always 1
-		printFlag(State.P, CpuFlagB, "b")
-		printFlag(State.P, CpuFlagD, "d")
-		printFlag(State.P, CpuFlagI, "i")
-		printFlag(State.P, CpuFlagZ, "z")
-		printFlag(State.P, CpuFlagC, "c")
+		printFlag(State.P, cpuFlagN, "n")
+		printFlag(State.P, cpuFlagV, "v")
+		fmt.Print("-") // cpuFlagR flag that's always 1
+		printFlag(State.P, cpuFlagB, "b")
+		printFlag(State.P, cpuFlagD, "d")
+		printFlag(State.P, cpuFlagI, "i")
+		printFlag(State.P, cpuFlagZ, "z")
+		printFlag(State.P, cpuFlagC, "c")
 	}
 
 	fmt.Println("")

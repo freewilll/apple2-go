@@ -65,7 +65,7 @@ func update(screen *ebiten.Image) error {
 	exitAtBreak := true        // Die if a BRK instruction is seen
 
 	// Run for 1/60 of a second, the duration of an ebiten frame
-	cpu.Run(*showInstructions, breakAddress, exitAtBreak, *disableFirmwareWait, system.CpuFrequency/60)
+	cpu.Run(*showInstructions, breakAddress, exitAtBreak, *disableFirmwareWait, system.CPUFrequency/60)
 
 	// Process any audio speaker clicks from this frame
 	audio.ForwardToFrameCycle()

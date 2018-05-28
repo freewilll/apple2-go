@@ -4,7 +4,7 @@ import (
 	"github.com/hajimehoshi/ebiten"
 )
 
-var ebitenAsciiMap map[ebiten.Key]uint8 // ebiten keys mapped to ASCII
+var ebitenASCIIMap map[ebiten.Key]uint8 // ebiten keys mapped to ASCII
 var shiftMap map[uint8]uint8            // ebiten keys mapped to ASCII when shift is pressed
 var controlMap map[uint8]uint8          // ebiten keys mapped to ASCII when control is pressed
 
@@ -19,68 +19,68 @@ func Init() {
 	strobe = 0
 	capsLock = true
 
-	ebitenAsciiMap = make(map[ebiten.Key]uint8)
+	ebitenASCIIMap = make(map[ebiten.Key]uint8)
 	shiftMap = make(map[uint8]uint8)
 	controlMap = make(map[uint8]uint8)
 	previousKeysPressed = make(map[uint8]bool)
 
-	ebitenAsciiMap[ebiten.KeyLeft] = 8
-	ebitenAsciiMap[ebiten.KeyTab] = 9
-	ebitenAsciiMap[ebiten.KeyDown] = 10
-	ebitenAsciiMap[ebiten.KeyUp] = 11
-	ebitenAsciiMap[ebiten.KeyEnter] = 13
-	ebitenAsciiMap[ebiten.KeyRight] = 21
-	ebitenAsciiMap[ebiten.KeyEscape] = 27
-	ebitenAsciiMap[ebiten.KeyDelete] = 127
+	ebitenASCIIMap[ebiten.KeyLeft] = 8
+	ebitenASCIIMap[ebiten.KeyTab] = 9
+	ebitenASCIIMap[ebiten.KeyDown] = 10
+	ebitenASCIIMap[ebiten.KeyUp] = 11
+	ebitenASCIIMap[ebiten.KeyEnter] = 13
+	ebitenASCIIMap[ebiten.KeyRight] = 21
+	ebitenASCIIMap[ebiten.KeyEscape] = 27
+	ebitenASCIIMap[ebiten.KeyDelete] = 127
 
-	ebitenAsciiMap[ebiten.Key0] = '0'
-	ebitenAsciiMap[ebiten.Key1] = '1'
-	ebitenAsciiMap[ebiten.Key2] = '2'
-	ebitenAsciiMap[ebiten.Key3] = '3'
-	ebitenAsciiMap[ebiten.Key4] = '4'
-	ebitenAsciiMap[ebiten.Key5] = '5'
-	ebitenAsciiMap[ebiten.Key6] = '6'
-	ebitenAsciiMap[ebiten.Key7] = '7'
-	ebitenAsciiMap[ebiten.Key8] = '8'
-	ebitenAsciiMap[ebiten.Key9] = '9'
-	ebitenAsciiMap[ebiten.KeyA] = 'a'
-	ebitenAsciiMap[ebiten.KeyB] = 'b'
-	ebitenAsciiMap[ebiten.KeyC] = 'c'
-	ebitenAsciiMap[ebiten.KeyD] = 'd'
-	ebitenAsciiMap[ebiten.KeyE] = 'e'
-	ebitenAsciiMap[ebiten.KeyF] = 'f'
-	ebitenAsciiMap[ebiten.KeyG] = 'g'
-	ebitenAsciiMap[ebiten.KeyH] = 'h'
-	ebitenAsciiMap[ebiten.KeyI] = 'i'
-	ebitenAsciiMap[ebiten.KeyJ] = 'j'
-	ebitenAsciiMap[ebiten.KeyK] = 'k'
-	ebitenAsciiMap[ebiten.KeyL] = 'l'
-	ebitenAsciiMap[ebiten.KeyM] = 'm'
-	ebitenAsciiMap[ebiten.KeyN] = 'n'
-	ebitenAsciiMap[ebiten.KeyO] = 'o'
-	ebitenAsciiMap[ebiten.KeyP] = 'p'
-	ebitenAsciiMap[ebiten.KeyQ] = 'q'
-	ebitenAsciiMap[ebiten.KeyR] = 'r'
-	ebitenAsciiMap[ebiten.KeyS] = 's'
-	ebitenAsciiMap[ebiten.KeyT] = 't'
-	ebitenAsciiMap[ebiten.KeyU] = 'u'
-	ebitenAsciiMap[ebiten.KeyV] = 'v'
-	ebitenAsciiMap[ebiten.KeyW] = 'w'
-	ebitenAsciiMap[ebiten.KeyX] = 'x'
-	ebitenAsciiMap[ebiten.KeyY] = 'y'
-	ebitenAsciiMap[ebiten.KeyZ] = 'z'
-	ebitenAsciiMap[ebiten.KeyApostrophe] = '\''
-	ebitenAsciiMap[ebiten.KeyBackslash] = '\\'
-	ebitenAsciiMap[ebiten.KeyComma] = ','
-	ebitenAsciiMap[ebiten.KeyEqual] = '='
-	ebitenAsciiMap[ebiten.KeyGraveAccent] = '`'
-	ebitenAsciiMap[ebiten.KeyLeftBracket] = '['
-	ebitenAsciiMap[ebiten.KeyMinus] = '-'
-	ebitenAsciiMap[ebiten.KeyPeriod] = '.'
-	ebitenAsciiMap[ebiten.KeyRightBracket] = ']'
-	ebitenAsciiMap[ebiten.KeySemicolon] = ';'
-	ebitenAsciiMap[ebiten.KeySlash] = '/'
-	ebitenAsciiMap[ebiten.KeySpace] = ' '
+	ebitenASCIIMap[ebiten.Key0] = '0'
+	ebitenASCIIMap[ebiten.Key1] = '1'
+	ebitenASCIIMap[ebiten.Key2] = '2'
+	ebitenASCIIMap[ebiten.Key3] = '3'
+	ebitenASCIIMap[ebiten.Key4] = '4'
+	ebitenASCIIMap[ebiten.Key5] = '5'
+	ebitenASCIIMap[ebiten.Key6] = '6'
+	ebitenASCIIMap[ebiten.Key7] = '7'
+	ebitenASCIIMap[ebiten.Key8] = '8'
+	ebitenASCIIMap[ebiten.Key9] = '9'
+	ebitenASCIIMap[ebiten.KeyA] = 'a'
+	ebitenASCIIMap[ebiten.KeyB] = 'b'
+	ebitenASCIIMap[ebiten.KeyC] = 'c'
+	ebitenASCIIMap[ebiten.KeyD] = 'd'
+	ebitenASCIIMap[ebiten.KeyE] = 'e'
+	ebitenASCIIMap[ebiten.KeyF] = 'f'
+	ebitenASCIIMap[ebiten.KeyG] = 'g'
+	ebitenASCIIMap[ebiten.KeyH] = 'h'
+	ebitenASCIIMap[ebiten.KeyI] = 'i'
+	ebitenASCIIMap[ebiten.KeyJ] = 'j'
+	ebitenASCIIMap[ebiten.KeyK] = 'k'
+	ebitenASCIIMap[ebiten.KeyL] = 'l'
+	ebitenASCIIMap[ebiten.KeyM] = 'm'
+	ebitenASCIIMap[ebiten.KeyN] = 'n'
+	ebitenASCIIMap[ebiten.KeyO] = 'o'
+	ebitenASCIIMap[ebiten.KeyP] = 'p'
+	ebitenASCIIMap[ebiten.KeyQ] = 'q'
+	ebitenASCIIMap[ebiten.KeyR] = 'r'
+	ebitenASCIIMap[ebiten.KeyS] = 's'
+	ebitenASCIIMap[ebiten.KeyT] = 't'
+	ebitenASCIIMap[ebiten.KeyU] = 'u'
+	ebitenASCIIMap[ebiten.KeyV] = 'v'
+	ebitenASCIIMap[ebiten.KeyW] = 'w'
+	ebitenASCIIMap[ebiten.KeyX] = 'x'
+	ebitenASCIIMap[ebiten.KeyY] = 'y'
+	ebitenASCIIMap[ebiten.KeyZ] = 'z'
+	ebitenASCIIMap[ebiten.KeyApostrophe] = '\''
+	ebitenASCIIMap[ebiten.KeyBackslash] = '\\'
+	ebitenASCIIMap[ebiten.KeyComma] = ','
+	ebitenASCIIMap[ebiten.KeyEqual] = '='
+	ebitenASCIIMap[ebiten.KeyGraveAccent] = '`'
+	ebitenASCIIMap[ebiten.KeyLeftBracket] = '['
+	ebitenASCIIMap[ebiten.KeyMinus] = '-'
+	ebitenASCIIMap[ebiten.KeyPeriod] = '.'
+	ebitenASCIIMap[ebiten.KeyRightBracket] = ']'
+	ebitenASCIIMap[ebiten.KeySemicolon] = ';'
+	ebitenASCIIMap[ebiten.KeySlash] = '/'
+	ebitenASCIIMap[ebiten.KeySpace] = ' '
 
 	shiftMap['1'] = '!'
 	shiftMap['2'] = '@'
@@ -198,7 +198,7 @@ func Poll() {
 	newKeysPressed := make(map[uint8]bool)
 
 	// Query ebiten for all possible keys
-	for k, v := range ebitenAsciiMap {
+	for k, v := range ebitenASCIIMap {
 		if ebiten.IsKeyPressed(k) {
 			allKeysPressed[v] = true
 

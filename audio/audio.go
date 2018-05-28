@@ -18,10 +18,11 @@ func Click() {
 func attenuate(sample int16) int16 {
 	if system.AudioAttenuationCounter == 0 {
 		return 0
-	} else {
-		system.AudioAttenuationCounter--
-		return sample
 	}
+
+	system.AudioAttenuationCounter--
+	return sample
+
 }
 
 // ForwardToFrameCycle calculates how many audio samples need to be written to
@@ -29,7 +30,7 @@ func attenuate(sample int16) int16 {
 // flush and shove them into the channel.
 func ForwardToFrameCycle() {
 	// 1023000/44100=23.19 cycles per audio sample
-	cyclesPerAudioSample := system.CpuFrequency / float64(system.AudioSampleRate)
+	cyclesPerAudioSample := system.CPUFrequency / float64(system.AudioSampleRate)
 
 	// Should be about 1023000/60=17050
 	elapsedCycles := system.FrameCycles - system.LastAudioCycles
