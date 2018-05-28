@@ -13,6 +13,7 @@ import (
 
 func assertMemoryConfiguration(t *testing.T, address uint16, upperRamReadOnly bool, upperReadMappedToROM bool, d000Bank int) {
 	mmu.WriteMemory(address, 0x00)
+	assert.Equal(t, upperRamReadOnly, mmu.UpperRamReadOnly)
 	assert.Equal(t, upperReadMappedToROM, mmu.UpperReadMappedToROM)
 	assert.Equal(t, d000Bank, mmu.D000Bank)
 }
