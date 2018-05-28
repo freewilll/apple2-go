@@ -7,16 +7,18 @@ import (
 	"github.com/freewilll/apple2/system"
 )
 
-const RomPath = "apple2e.rom"
-const StackPage = 1
+const RomPath = "apple2e.rom" // So far only one ROM is supported and it's loaded at startup
+const StackPage = 1           // The 6502 stack is at 0x100
 
+// PhysicalMemory contains all the unmapped memory, ROM and RAM
 var PhysicalMemory struct {
-	MainMemory [0x10000]uint8
-	UpperROM   [0x3000]uint8
-	RomC1      [0x1000]uint8
-	RomC2      [0x1000]uint8
+	MainMemory [0x10000]uint8 // Main RAM
+	UpperROM   [0x3000]uint8  // $c000-$ffff ROM area
+	RomC1      [0x1000]uint8  // First half of IO ROM
+	RomC2      [0x1000]uint8  // Second half of IO ROM
 }
 
+// Page tables for read & write
 var ReadPageTable [0x100][]uint8
 var WritePageTable [0x100][]uint8
 
@@ -35,6 +37,7 @@ var (
 	Page2                bool // Main memory Page2 is selected
 )
 
+// Make page tables for current RAM, ROM and IO configuration
 func ApplyMemoryConfiguration() {
 	// Map main RAM for read/write
 	for i := 0x0; i < 0xc0; i++ {
@@ -102,7 +105,7 @@ func MapSecondHalfOfIO() {
 	ApplyMemoryConfiguration()
 }
 
-// emptySlot zeroes all RAM for a slot
+// emptySlot zeroes all RAM for a slot, effectively disabling the slot
 func emptySlot(slot int) {
 	for i := slot * 0x100; i < (slot+1)*0x100; i++ {
 		PhysicalMemory.RomC1[i] = 0
@@ -134,6 +137,7 @@ func InitApple2eROM() {
 	InitROM()          // Map 0xd000-0xffff for reading
 }
 
+// Set upper memory area for reading from ROM
 func InitROM() {
 	UpperReadMappedToROM = true
 	ApplyMemoryConfiguration()
@@ -149,31 +153,39 @@ func SetUpperRamReadOnly(value bool) {
 	ApplyMemoryConfiguration()
 }
 
+// Set d000 bank to map to $c000 or $d000 in the physical  memory
 func SetD000Bank(value int) {
 	D000Bank = value
 	ApplyMemoryConfiguration()
 }
 
+// Aux memory hasn't been implemented. If aux memory is selected, and a read
+// is attempted, then nonsense must be returned.
 func SetFakeAuxMemoryRead(value bool) {
 	FakeAuxMemoryRead = value
 	ApplyMemoryConfiguration()
 }
 
+// Aux memory hasn't been implemented. If aux memory is selected, and a write
+// is attempted, then it must be ignored.
 func SetFakeAuxMemoryWrite(value bool) {
 	FakeAuxMemoryWrite = value
 	ApplyMemoryConfiguration()
 }
 
+// Alternate zero page isn't implemented
 func SetFakeAltZP(value bool) {
 	FakeAltZP = value
 	ApplyMemoryConfiguration()
 }
 
+// 80 column card isn't implemented
 func SetCol80(value bool) {
 	Col80 = value
 	// No changes are needed when this is toggled
 }
 
+// Page switching is only implemented for the main memory
 func SetPage2(value bool) {
 	// If the 80 column card is enabled, then this toggles aux memory
 	// Otherwise, page1/page2 is toggled in the main memory
@@ -185,12 +197,14 @@ func SetPage2(value bool) {
 	}
 }
 
+// 80 column card isn't implemented
 func SetStore80(value bool) {
 	Store80 = value
 	FakePage2 = value
 	ApplyMemoryConfiguration()
 }
 
+// InitRAM sets all default RAM memory settings and resets the page tables
 func InitRAM() {
 	UpperRamReadOnly = false
 	D000Bank = 2
@@ -209,6 +223,7 @@ func WipeRAM() {
 	}
 }
 
+// SetMemoryMode is used to set UpperRamReadOnly, UpperReadMappedToROM and D000Bank number
 func SetMemoryMode(mode uint8) {
 	// mode corresponds to a read/write to $c080 with
 	// $c080 mode=$00
@@ -236,6 +251,7 @@ func SetMemoryMode(mode uint8) {
 	ApplyMemoryConfiguration()
 }
 
+// ReadMemory reads the ROM or RAM page table
 func ReadMemory(address uint16) uint8 {
 	if (address >= 0xc000) && (address < 0xc100) {
 		return ReadIO(address)
@@ -257,15 +273,18 @@ func ReadMemory(address uint16) uint8 {
 		}
 	}
 
+	// Implicit else, we're reading the main non-IO RAM
 	return ReadPageTable[address>>8][address&0xff]
 }
 
+// ReadMemory writes to the ROM or RAM page table
 func WriteMemory(address uint16, value uint8) {
 	if (address >= 0xc000) && (address < 0xc100) {
 		WriteIO(address, value)
 		return
 	}
 
+	// Magic routine to trigger an interrupt, used in the CPU interrupt tests
 	if system.RunningInterruptTests && address == 0xbffc {
 		oldValue := ReadMemory(address)
 		system.WriteInterruptTestOpenCollector(address, oldValue, value)
@@ -284,11 +303,14 @@ func WriteMemory(address uint16, value uint8) {
 	}
 
 	memory := WritePageTable[address>>8]
+
 	// If memory is nil, then it's read only. The write is ignored.
 	if memory != nil {
 		memory[uint8(address&0xff)] = value
 	}
 
+	// If doing CPU functional tests, 0x200 has the test number in it. A write to
+	// it means a test passed or the tests are complete.
 	if system.RunningFunctionalTests && address == 0x200 {
 		testNumber := ReadMemory(0x200)
 		if testNumber == 0xf0 {

@@ -898,7 +898,7 @@ func SetColdStartReset() {
 
 // Reset sets the CPU and memory states so that a next call to cpu.Run() calls the firmware reset code
 func Reset() {
-	mmu.InitROM()
+	mmu.InitROM() // Set upper memory area for reading from ROM
 	mmu.InitRAM()
 
 	bootVector := 0xfffc

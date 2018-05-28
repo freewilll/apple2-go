@@ -93,6 +93,13 @@ const (
 	S6Q7H      = 0xC0EF // write
 )
 
+// VideoState has 3 booleans which determine the video configuration:
+//                    TextMode HiresMode Mixed
+// text				  1        0 		 N/A
+// lores + text		  0        0         1
+// lores              0        0         0
+// hires              N/A      1         0
+// hires + text       N/A      1         1
 var VideoState struct {
 	TextMode  bool
 	HiresMode bool
@@ -113,6 +120,7 @@ func InitIO() {
 	system.DriveState.Q6 = false
 	system.DriveState.Q7 = false
 
+	// Initialize video
 	VideoState.TextMode = true
 	VideoState.HiresMode = false
 	VideoState.Mixed = false
@@ -120,12 +128,8 @@ func InitIO() {
 	disk.InitDiskImage()
 }
 
-func driveIsreadSequencing() bool {
-	return (!system.DriveState.Q6) && (!system.DriveState.Q7)
-}
-
-// Handle soft switch addresses where both a read and a write has a side
-// effect and the return value is meaningless
+// Handle soft switch addresses between $c000-$c0ff where both a read and a write has a side
+// effect. Returns true if the read/write has been handled.
 func readWrite(address uint16, isRead bool) bool {
 	lsb := address & 0xff
 	if lsb >= 0x80 && lsb < 0x90 {
@@ -140,48 +144,56 @@ func readWrite(address uint16, isRead bool) bool {
 	case SETAUXRD:
 		SetFakeAuxMemoryRead(true)
 		return true
+
 	case CLRAUXWR:
 		SetFakeAuxMemoryWrite(false)
 		return true
 	case SETAUXWR:
 		SetFakeAuxMemoryWrite(true)
 		return true
+
 	case CLRAUXZP:
 		SetFakeAltZP(false)
 		return true
 	case SETAUXZP:
 		SetFakeAltZP(true)
 		return true
+
 	case CLR80VID:
 		SetCol80(false)
 		return true
 	case SET80VID:
 		SetCol80(true)
 		return true
+
 	case TXTPAGE1:
 		SetPage2(false)
 		return true
 	case TXTPAGE2:
 		SetPage2(true)
 		return true
+
 	case CLRTEXT:
 		VideoState.TextMode = false
 		return true
 	case SETTEXT:
 		VideoState.TextMode = true
 		return true
+
 	case CLRMIXED:
 		VideoState.Mixed = false
 		return true
 	case SETMIXED:
 		VideoState.Mixed = true
 		return true
+
 	case CLRHIRES:
 		VideoState.HiresMode = false
 		return true
 	case SETHIRES:
 		VideoState.HiresMode = true
 		return true
+
 	case CLR80COL:
 		if !isRead {
 			SetStore80(false)
@@ -192,6 +204,7 @@ func readWrite(address uint16, isRead bool) bool {
 	case SET80COL:
 		SetStore80(true)
 		return true
+
 	case STATEREG:
 		// Ignore not implemented memory management reg
 		return true
@@ -200,37 +213,40 @@ func readWrite(address uint16, isRead bool) bool {
 	case S6CLRDRVP0, S6SETDRVP0, S6CLRDRVP1, S6SETDRVP1, S6CLRDRVP2, S6SETDRVP2, S6CLRDRVP3, S6SETDRVP3:
 		magnet := (address - S6CLRDRVP0) / 2
 		on := ((address - S6CLRDRVP0) % 2) == 1
-
-		if on {
-			system.DriveState.Phases |= (1 << magnet)
-
-			// Move head if a neighboring magnet is on and all others are off
-			direction := int8(0)
-			if (system.DriveState.Phases & (1 << uint8((system.DriveState.Phase+1)&3))) != 0 {
-				direction += 1
-			}
-			if (system.DriveState.Phases & (1 << uint8((system.DriveState.Phase+3)&3))) != 0 {
-				direction -= 1
-			}
-
-			if direction != 0 {
-				system.DriveState.Phase += direction
-
-				if system.DriveState.Phase < 0 {
-					system.DriveState.Phase = 0
-				}
-				if system.DriveState.Phase == 80 {
-					system.DriveState.Phase = 79
-				}
-
-				disk.MakeTrackData(uint8(system.DriveState.Phase))
-
-				if audio.ClickWhenDriveHeadMoves {
-					audio.Click()
-				}
-			}
-		} else {
+		if !on {
+			// Turn off the magnet in Phases
 			system.DriveState.Phases &= ^(1 << magnet)
+			return true
+		}
+
+		// Implicit else, a magnet has been switched on
+		system.DriveState.Phases |= (1 << magnet)
+
+		// Move head if a neighboring magnet is on and all others are off
+		direction := int8(0)
+		if (system.DriveState.Phases & (1 << uint8((system.DriveState.Phase+1)&3))) != 0 {
+			direction += 1
+		}
+		if (system.DriveState.Phases & (1 << uint8((system.DriveState.Phase+3)&3))) != 0 {
+			direction -= 1
+		}
+
+		// Move the head
+		if direction != 0 {
+			system.DriveState.Phase += direction
+
+			if system.DriveState.Phase < 0 {
+				system.DriveState.Phase = 0
+			}
+			if system.DriveState.Phase == 80 {
+				system.DriveState.Phase = 79
+			}
+
+			disk.MakeTrackData(uint8(system.DriveState.Phase))
+
+			if audio.ClickWhenDriveHeadMoves {
+				audio.Click()
+			}
 		}
 
 		return true
@@ -241,12 +257,14 @@ func readWrite(address uint16, isRead bool) bool {
 	case S6MOTORON:
 		system.DriveState.Spinning = true
 		return true
+
 	case S6SELDRV1:
 		system.DriveState.Drive = 1
 		return true
 	case S6SELDRV2:
 		system.DriveState.Drive = 2
 		return true
+
 	case S6Q6L:
 		if !isRead {
 			system.DriveState.Q6 = false
@@ -259,6 +277,7 @@ func readWrite(address uint16, isRead bool) bool {
 			return true
 		}
 		return false
+
 	case S6Q7L:
 		system.DriveState.Q7 = false
 		return true
@@ -271,12 +290,15 @@ func readWrite(address uint16, isRead bool) bool {
 	}
 }
 
+// ReadIO does a read in the $c000-$c0ff area
 func ReadIO(address uint16) uint8 {
+	// Try the generic readWrite and return if it has handled the read
 	if readWrite(address, true) {
 		return 0
 	}
 
 	switch address {
+
 	case KEYBOARD, STROBE:
 		keyBoardData, strobe := keyboard.Read()
 		if address == KEYBOARD {
@@ -285,15 +307,18 @@ func ReadIO(address uint16) uint8 {
 			keyboard.ResetStrobe()
 			return strobe
 		}
+
 	case RDRAMRD, RDRAMWR, RDAUXZP:
 		panic("Read/write aux memory not implemented")
 		return 0x0d
+
 	case RDCXROM:
 		if UsingExternalSlotRom {
 			return 0x8d
 		} else {
 			return 0x0d
 		}
+
 	case RD80VID:
 		// using 80-column display mode not implemented
 		return 0x0d
@@ -308,24 +333,33 @@ func ReadIO(address uint16) uint8 {
 	// 4-bit annunciator inputs
 	case SETAN0, CLRAN0, SETAN1, CLRAN1, SETAN2, CLRAN2, SETAN3, CLRAN3:
 		// Annunciators not implemented
+
 	case OPNAPPLE:
 		// Open apple key not implemented
 		return 0
+
 	case CLSAPPLE:
 		// Closed apple key not implemented
+
 	case RD80COL:
 		if Store80 {
 			return 0x8d
 		} else {
 			return 0x0d
 		}
+
 	case RDALTCH:
-		// RDALTCH not implemented
+		// RDALTCH not implemented, but it's also used, so don't fail on it.
 		return 0x0d
+
 	case SPEAKER:
 		audio.Click()
+		return 0
+
 	case S6Q6L:
+		// A read from disk
 		return disk.ReadTrackData()
+
 	default:
 		panic(fmt.Sprintf("TODO read %04x\n", address))
 	}
@@ -333,31 +367,41 @@ func ReadIO(address uint16) uint8 {
 	return 0
 }
 
+// ReadIO does a write in the $c000-$c0ff area
 func WriteIO(address uint16, value uint8) {
+	// Try the generic readWrite and return if it has handled the write
 	if readWrite(address, false) {
 		return
 	}
 
 	switch address {
+
 	case STROBE:
 		keyboard.ResetStrobe()
+
 	case CLRCXROM:
 		MapFirstHalfOfIO()
 	case SETCXROM:
 		MapSecondHalfOfIO()
+
 	case CLRALTCH:
 		return
 	case SETALTCH:
 		panic("SETALTCH not implemented")
+
 	case CLR80COL:
 		// CLR80COL not implemented
 		return
+
 	case CLRC3ROM:
 		// CLRC3ROM not implemented
 	case SETC3ROM:
 		// SETC3ROM not implemented
+
 	case S6Q6H:
+		// A write to disk
 		disk.WriteTrackData(value)
+
 	default:
 		panic(fmt.Sprintf("TODO write %04x\n", address))
 	}
