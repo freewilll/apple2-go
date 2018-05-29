@@ -23,7 +23,6 @@ const (
 type drawTextLoresByte func(*ebiten.Image, int, int, uint8) error
 
 var (
-	charMap      *ebiten.Image     // Character map for text screen
 	flashCounter int               // Counter used for flashing characters on the text screen
 	flashOn      bool              // Are we currently flashing?
 	loresSquares [16]*ebiten.Image // Colored blocks for lores rendering
@@ -31,18 +30,6 @@ var (
 	// ShowFPS determines if the FPS is shown in the corner of the video
 	ShowFPS bool
 )
-
-// initTextCharMap initializes the text character map
-func initTextCharMap() {
-	// The character map pr-latin1.png was downloaded from
-	// http://www.kreativekorp.com/software/fonts/apple2.shtml
-
-	var err error
-	charMap, _, err = ebitenutil.NewImageFromFile("video/pr-latin1.png", ebiten.FilterNearest)
-	if err != nil {
-		panic(err)
-	}
-}
 
 // initLoresSquares creates 16 colored squares for the lores renderer
 func initLoresSquares() {
@@ -111,16 +98,11 @@ func drawText(screen *ebiten.Image, x int, y int, value uint8) error {
 	op.GeoM.Scale(ScreenSizeFactor, ScreenSizeFactor)
 	op.GeoM.Translate(ScreenSizeFactor*7*float64(x), ScreenSizeFactor*8*float64(y))
 
-	// Grab the image from the font image
-	fontRow := value % 16
-	fontCol := value / 16
-	var fontX = (int)(15 + fontCol*12)
-	var fontY = (int)(32 + fontRow*11)
-	r := image.Rect(fontX, fontY, fontX+7, fontY+8)
+	r := image.Rect(0, 0, 7, 8)
 	op.SourceRect = &r
 
 	// The charMap is already inverted. Invert it back if we ourselves aren't inverted.
-	if !inverted {
+	if inverted {
 		op.ColorM.Scale(-1, -1, -1, 1)
 		op.ColorM.Translate(1, 1, 1, 0)
 	}
@@ -128,7 +110,7 @@ func drawText(screen *ebiten.Image, x int, y int, value uint8) error {
 	// Make it look greenish
 	op.ColorM.Scale(0.20, 0.75, 0.20, 1)
 
-	return screen.DrawImage(charMap, op)
+	return screen.DrawImage(charMap[value], op)
 }
 
 // drawLores draws two colored lores squares at the equivalent text location x,y.
