@@ -8,8 +8,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/freewilll/apple2/cpu"
-	"github.com/freewilll/apple2/system"
+	"github.com/freewilll/apple2-go/cpu"
+	"github.com/freewilll/apple2-go/system"
 )
 
 // ReadMemoryFromGzipFile just reads and uncompresses a gzip file

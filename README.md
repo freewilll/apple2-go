@@ -16,9 +16,7 @@ An Apple //e emulator written in Go using [ebiten](https://github.com/hajimehosh
 
 ## Installation
 
-Install prerequisites with glide
-
-    glide up
+The installation requires go modules go be installed
 
 Build the executable
 
@@ -29,9 +27,9 @@ Download `apple2e.rom` from
 
 ## Running it
 
-    ./apple2
-    ./apple2 my_disk_image.dsk
-    ./apple2 -drive-head-click my_disk_image.dsk
+    ./apple2-go
+    ./apple2-go my_disk_image.dsk
+    ./apple2-go -drive-head-click my_disk_image.dsk
 
 ## Keyboard shortcuts
 
@@ -57,7 +55,7 @@ The CPU tests make use of [Klaus2m5's](https://github.com/Klaus2m5/6502_65C02_fu
 
 ### Creating the CPU test ROMs
 
-The source files are `6502_functional_test.a65` and `6502_interrupt_test.a65`. They are assembled using `as65` into a binary file which contains a memory image of the test code. They are compressed into gzip files which are loaded into the apple memory by the unit tests. 
+The source files are `6502_functional_test.a65` and `6502_interrupt_test.a65`. They are assembled using `as65` into a binary file which contains a memory image of the test code. They are compressed into gzip files which are loaded into the apple memory by the unit tests.
 
 Download [as65](http://www.kingswood-consulting.co.uk/assemblers/as65_142.zip) and unzip it to get the `as65` assembler binary.
 

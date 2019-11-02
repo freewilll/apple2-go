@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/freewilll/apple2/mmu"
+	"github.com/freewilll/apple2-go/mmu"
 )
 
 // printFlag prints a lower or uppercase letter depending on the state of the flag

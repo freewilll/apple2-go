@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/freewilll/apple2/system"
+	"github.com/freewilll/apple2-go/system"
 )
 
 const tracksPerDisk = 35

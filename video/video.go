@@ -8,7 +8,7 @@ import (
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 
-	"github.com/freewilll/apple2/mmu"
+	"github.com/freewilll/apple2-go/mmu"
 )
 
 const (

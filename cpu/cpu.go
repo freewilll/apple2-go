@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/freewilll/apple2/mmu"
-	"github.com/freewilll/apple2/system"
+	"github.com/freewilll/apple2-go/mmu"
+	"github.com/freewilll/apple2-go/system"
 )
 
 const (

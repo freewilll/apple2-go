@@ -5,7 +5,7 @@ package audio
 import (
 	"errors"
 
-	"github.com/freewilll/apple2/system"
+	"github.com/freewilll/apple2-go/system"
 	ebiten_audio "github.com/hajimehoshi/ebiten/audio"
 )
 

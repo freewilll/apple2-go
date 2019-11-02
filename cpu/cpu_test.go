@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/freewilll/apple2/cpu"
-	"github.com/freewilll/apple2/mmu"
-	"github.com/freewilll/apple2/system"
-	"github.com/freewilll/apple2/utils"
+	"github.com/freewilll/apple2-go/cpu"
+	"github.com/freewilll/apple2-go/mmu"
+	"github.com/freewilll/apple2-go/system"
+	"github.com/freewilll/apple2-go/utils"
 )
 
 func TestCPU(t *testing.T) {

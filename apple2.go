@@ -10,14 +10,14 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 
-	"github.com/freewilll/apple2/audio"
-	"github.com/freewilll/apple2/cpu"
-	"github.com/freewilll/apple2/disk"
-	"github.com/freewilll/apple2/keyboard"
-	"github.com/freewilll/apple2/mmu"
-	"github.com/freewilll/apple2/system"
-	"github.com/freewilll/apple2/utils"
-	"github.com/freewilll/apple2/video"
+	"github.com/freewilll/apple2-go/audio"
+	"github.com/freewilll/apple2-go/cpu"
+	"github.com/freewilll/apple2-go/disk"
+	"github.com/freewilll/apple2-go/keyboard"
+	"github.com/freewilll/apple2-go/mmu"
+	"github.com/freewilll/apple2-go/system"
+	"github.com/freewilll/apple2-go/utils"
+	"github.com/freewilll/apple2-go/video"
 )
 
 var (

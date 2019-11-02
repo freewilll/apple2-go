@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/freewilll/apple2/system"
+	"github.com/freewilll/apple2-go/system"
 )
 
 // RomPath is a hardcoded path to an Apple //e ROM file that's loaded at startup

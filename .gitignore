@@ -1,6 +1,5 @@
 vendor
-glide.lock
-apple2
+apple2-go
 apple2.test
 apple2e.rom
 dos33.dsk

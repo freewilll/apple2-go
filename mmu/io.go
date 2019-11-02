@@ -3,10 +3,10 @@ package mmu
 import (
 	"fmt"
 
-	"github.com/freewilll/apple2/audio"
-	"github.com/freewilll/apple2/disk"
-	"github.com/freewilll/apple2/keyboard"
-	"github.com/freewilll/apple2/system"
+	"github.com/freewilll/apple2-go/audio"
+	"github.com/freewilll/apple2-go/disk"
+	"github.com/freewilll/apple2-go/keyboard"
+	"github.com/freewilll/apple2-go/system"
 )
 
 // Adapted from

@@ -5,7 +5,7 @@ package audio
 // channel is filled with the last audio samples. The channel is also
 // filled at the end of the frame.
 
-import "github.com/freewilll/apple2/system"
+import "github.com/freewilll/apple2-go/system"
 
 // Click handles a speaker click
 func Click() {
