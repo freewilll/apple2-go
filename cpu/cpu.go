@@ -551,7 +551,7 @@ func nmi() {
 
 // Run runs the CPU until either wantedCycles has been reached (if non-zero) or the program counter reaches breakAddress.
 // system.FrameCycles is the amount of cycles executed so far.
-func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableFirmwareWait bool, wantedCycles uint64) {
+func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableFirmwareWait bool, disableDosDelay bool, wantedCycles uint64) {
 	system.FrameCycles = 0
 
 	for {
@@ -632,6 +632,10 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 				State.PC += 3
 				State.A = 0
 				continue
+			} else if disableDosDelay && value == 0xba00 {
+				// Don't call the delay, just move forward and pretend it happened.
+				State.PC += 3
+				continue
 			}
 
 			push16(State.PC + 2)
@@ -647,6 +651,15 @@ func Run(showInstructions bool, breakAddress *uint16, exitAtBreak bool, disableF
 		case 0xa2, 0xa6, 0xb6, 0xae, 0xbe: // LDX
 			State.X = load(addressMode)
 		case 0xa0, 0xa4, 0xb4, 0xac, 0xbc: // LDY
+			if disableDosDelay {
+				pc := uint16(mmu.ReadMemory(State.PC+1)) + uint16(mmu.ReadMemory(State.PC+2))<<8
+				if pc == 0xbd9e {
+					// Don't do delay, just move forward and pretend it happened.
+					State.PC += 13
+					continue
+				}
+			}
+
 			State.Y = load(addressMode)
 
 		case 0x85, 0x95, 0x8d, 0x9d, 0x99, 0x81, 0x91: //STA

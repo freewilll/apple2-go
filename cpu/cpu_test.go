@@ -76,7 +76,7 @@ func TestCPU(t *testing.T) {
 			mmu.WritePageTable[0xc0+i] = RomPretendingToBeRAM[i*0x100 : i*0x100+0x100]
 		}
 
-		cpu.Run(*showInstructions, breakAddress, true, false, 0)
+		cpu.Run(*showInstructions, breakAddress, true, false, false, 0)
 		fmt.Printf("Finished running %s\n\n", rom)
 	}
 }

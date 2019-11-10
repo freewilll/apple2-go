@@ -23,6 +23,7 @@ import (
 var (
 	showInstructions    *bool   // Display all instructions as they are executed
 	disableFirmwareWait *bool   // Disable the WAIT function at $fca8
+	disableDosDelay     *bool   // Disable DOS delay functions
 	breakAddress        *uint16 // Break address from the command line
 
 	resetKeysDown bool // Keep track of ctrl-alt-R key down state
@@ -65,7 +66,7 @@ func update(screen *ebiten.Image) error {
 	exitAtBreak := true        // Die if a BRK instruction is seen
 
 	// Run for 1/60 of a second, the duration of an ebiten frame
-	cpu.Run(*showInstructions, breakAddress, exitAtBreak, *disableFirmwareWait, system.CPUFrequency/60)
+	cpu.Run(*showInstructions, breakAddress, exitAtBreak, *disableFirmwareWait, *disableDosDelay, system.CPUFrequency/60)
 
 	// Process any audio speaker clicks from this frame
 	audio.ForwardToFrameCycle()
@@ -88,6 +89,7 @@ func main() {
 
 	showInstructions = flag.Bool("show-instructions", false, "Show instructions code while running")
 	disableFirmwareWait = flag.Bool("disable-wait", false, "Ignore JSRs to firmware wait at $FCA8")
+	disableDosDelay = flag.Bool("disable-dos-delay", false, "Ignore DOS ARM move and motor on waits")
 	breakAddressString := flag.String("break", "", "Break on address")
 	mute := flag.Bool("mute", false, "Mute sound")
 	clickWhenDriveHeadMoves := flag.Bool("drive-head-click", false, "Click speaker when drive head moves")

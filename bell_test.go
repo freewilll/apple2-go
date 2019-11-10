@@ -23,8 +23,9 @@ func testBellCycles(delay int) {
 	breakAddress := uint16(0x805)
 	exitAtBreak := false
 	disableFirmwareWait := false
+	disableDosDelay := false
 	cpu.State.PC = 0x800
-	cpu.Run(showInstructions, &breakAddress, exitAtBreak, disableFirmwareWait, system.CPUFrequency*1000)
+	cpu.Run(showInstructions, &breakAddress, exitAtBreak, disableFirmwareWait, disableDosDelay, system.CPUFrequency*1000)
 
 	// See http://apple2.org.za/gswv/a2zine/GS.WorldView/Resources/USEFUL.TABLES/WAIT.DELAY.CR.txt
 	expectedCycles := (26 + 27*delay + 5*delay*delay) / 2
