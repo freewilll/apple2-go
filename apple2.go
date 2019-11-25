@@ -26,8 +26,9 @@ var (
 	disableDosDelay     *bool   // Disable DOS delay functions
 	breakAddress        *uint16 // Break address from the command line
 
-	resetKeysDown bool // Keep track of ctrl-alt-R key down state
-	fpsKeysDown   bool // Keep track of ctrl-alt-F key down state
+	resetKeysDown      bool // Keep track of ctrl-alt-R key down state
+	fpsKeysDown        bool // Keep track of ctrl-alt-F key down state
+	monochromeKeysDown bool // Keep track of ctrl-alt-M key down state
 )
 
 // checkSpecialKeys checks
@@ -53,13 +54,26 @@ func checkSpecialKeys() {
 	} else {
 		fpsKeysDown = false
 	}
+
+	// Check for ctrl-alt-M and toggle FPS display
+	if ebiten.IsKeyPressed(ebiten.KeyControl) && ebiten.IsKeyPressed(ebiten.KeyAlt) && ebiten.IsKeyPressed(ebiten.KeyM) {
+		monochromeKeysDown = true
+	} else if ebiten.IsKeyPressed(ebiten.KeyControl) && ebiten.IsKeyPressed(ebiten.KeyAlt) && !ebiten.IsKeyPressed(ebiten.KeyM) && monochromeKeysDown {
+		monochromeKeysDown = false
+		video.Monochrome = !video.Monochrome
+	} else {
+		monochromeKeysDown = false
+	}
 }
 
 // update is the main ebiten loop
 func update(screen *ebiten.Image) error {
 
-	keyboard.Poll()    // Convert ebiten's keyboard state to an interal value
 	checkSpecialKeys() // Poll the keyboard and check for R and F keys
+
+	if !(fpsKeysDown || monochromeKeysDown) {
+		keyboard.Poll() // Convert ebiten's keyboard state to an interal value
+	}
 
 	system.FrameCycles = 0     // Reset cycles processed this frame
 	system.LastAudioCycles = 0 // Reset processed audio cycles
@@ -122,7 +136,7 @@ func main() {
 
 	// Start the ebiten main loop
 	ebiten.SetRunnableInBackground(true)
-	ebiten.Run(update, 280*video.ScreenSizeFactor, 192*video.ScreenSizeFactor, 2, "Apple //e")
+	ebiten.Run(update, 560, 384, 1, "Apple //e")
 
 	// The main loop has ended, flush any data to the disk image if any writes have been done.
 	disk.FlushImage()

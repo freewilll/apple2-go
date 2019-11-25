@@ -7,8 +7,8 @@ An Apple //e emulator written in Go using [ebiten](https://github.com/hajimehosh
 * MOS 6502 CPU
 * Keyboard
 * 40 column text mode
-* Low resolution color graphics
-* High resolution monochrome graphics
+* Low resolution monochrome and color graphics
+* High resolution monochrome and color graphics
 * Upper memory bank switching: $d000 page and ROM/RAM
 * Main memory page1/page2 switching in text, lores and hires
 * Disk image reading & writing
@@ -34,7 +34,7 @@ Download `apple2e.rom` from
 ## Keyboard shortcuts
 
 * ctrl-alt-R reset
-* ctrl-alt-M mute
+* ctrl-alt-M toggle monochrome/color display
 * ctrl-alt-C caps lock
 * ctrl-alt-F show FPS
 
