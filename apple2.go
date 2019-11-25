@@ -25,6 +25,7 @@ var (
 	disableFirmwareWait *bool   // Disable the WAIT function at $fca8
 	disableDosDelay     *bool   // Disable DOS delay functions
 	breakAddress        *uint16 // Break address from the command line
+	scale               float64 // Scale
 
 	resetKeysDown      bool // Keep track of ctrl-alt-R key down state
 	fpsKeysDown        bool // Keep track of ctrl-alt-F key down state
@@ -106,6 +107,7 @@ func main() {
 	disableDosDelay = flag.Bool("disable-dos-delay", false, "Ignore DOS ARM move and motor on waits")
 	breakAddressString := flag.String("break", "", "Break on address")
 	mute := flag.Bool("mute", false, "Mute sound")
+	scale := flag.Float64("scale", 2, "Video scale")
 	clickWhenDriveHeadMoves := flag.Bool("drive-head-click", false, "Click speaker when drive head moves")
 	flag.Parse()
 
@@ -136,7 +138,7 @@ func main() {
 
 	// Start the ebiten main loop
 	ebiten.SetRunnableInBackground(true)
-	ebiten.Run(update, 560, 384, 1, "Apple //e")
+	ebiten.Run(update, 560, 384, *scale, "Apple //e")
 
 	// The main loop has ended, flush any data to the disk image if any writes have been done.
 	disk.FlushImage()
